@@ -31,6 +31,7 @@ function noticeFor(format, ext) {
   }
   if (format === 'rtf') return { kind: 'notDocx', title: 'This is an RTF file', detail: 'The file contains Rich Text Format, not a Word .docx package. Open it in Word or a text editor.' };
   if (format === 'empty') return { kind: 'empty', title: 'This file is empty', detail: 'The file has 0 bytes.' };
+  if (format === 'unknown' && (ext === '.odt' || ext === '.ott')) return { kind: 'notDocx', title: 'This is not an OpenDocument text file', detail: 'An .odt file is a ZIP package. This file does not start with a ZIP header, so it may be damaged or have the wrong extension.' };
   if (format === 'unknown') return { kind: 'notDocx', title: 'This is not a Word .docx file', detail: 'A .docx file is a ZIP package. This file does not start with a ZIP header, so it may be damaged or have the wrong extension.' };
   return null;
 }

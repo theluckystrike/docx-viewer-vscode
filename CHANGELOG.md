@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0 (2026-11-06)
+
+- OpenDocument text files (`.odt`, and `.ott` templates) open in the viewer, with the same outline, search, dark mode, tables, images, footnotes, Copy as Markdown and Open as Text as a `.docx`. An `.odt` saved with a `.docx` name opens too. OpenDocument spreadsheets and presentations get a short message instead.
+- New command "Compare with Git HEAD". It shows what changed in a `.docx` or `.odt` since the last commit, as Markdown in the VS Code diff view. It's in the Explorer and Source Control right-click menus and in the viewer's `...` menu. Git runs locally with hooks and fsmonitor off, and only in a trusted workspace.
+- New command "Compare with Another Document...". Select two documents in the Explorer, or pick the second one, to see their differences the same way. A `.docx` can be compared with an `.odt`.
+- Both features are free, like the rest of the extension.
+
 ## 0.1.4 (2026-11-06)
 
 - The Marketplace page now starts with a screenshot of a real VS Code window with a .docx in dark mode and a search, and a short GIF of searching, the outline and the paper theme. Both were made from generated sample files. The images load from the GitHub repo and are not packed into the extension, so the download size stays the same.

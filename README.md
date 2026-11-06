@@ -6,9 +6,9 @@ For developers who get specs and contracts as Word files, DOCX Viewer opens .doc
 
 *A real VS Code 1.142 window running this extension on [`test/fixtures/sample.docx`](test/fixtures/sample.docx), a generated 2 page field report with a table and a chart.*
 
-- Read specs, contracts and reports next to your code. The page follows your VS Code theme, or switch to white paper with one click.
+- Read Word and OpenDocument (.odt) specs, contracts and reports next to your code. The page follows your VS Code theme, or switch to white paper with one click.
 - Find things fast. Search shows a match count, and the outline jumps to any heading.
-- Get the text out. Copy the whole document as Markdown with tables and footnotes, or open its plain text in a new editor.
+- See what changed. Compare a document with its last Git commit, or with another version, in the VS Code diff view. Or copy the whole document as Markdown with tables and footnotes.
 
 ## Quick start
 
@@ -25,7 +25,7 @@ No .docx at hand? Run "DOCX Viewer: Open Sample Document" from the Command Palet
 
 Headings, paragraphs, bold, italic, underline and strikethrough. Bulleted and numbered lists, including nested ones. Tables with merged cells. Images inline (PNG, JPEG, GIF, BMP and WebP). Footnotes and endnotes, with links between the reference and the note. Hyperlinks, which open in your browser.
 
-It reads `.docx`, `.dotx` (templates) and `.docm` files. Macros in `.docm` files never run. The viewer only reads the text and images.
+It reads `.docx`, `.dotx` (templates) and `.docm` files, and OpenDocument text files (`.odt` and `.ott` templates) from LibreOffice, Google Docs downloads and pandoc. Macros in `.docm` files never run. The viewer only reads the text and images.
 
 An old binary `.doc` file opens to a short message that explains the format and offers to open it in your default app. A password-protected `.docx` gets a similar message, since Word stores those in an encrypted container.
 
@@ -34,6 +34,14 @@ An old binary `.doc` file opens to a short message that explains the format and 
 ![The report in a light VS Code theme with a search for "region", on match 4 of 8](images/screenshot-light.png)
 
 ![The message for an old .doc file, with an Open in default app button](images/screenshot-doc-notice.png)
+
+## Compare versions
+
+Word files are binary, so `git diff` shows nothing useful for them. Right-click a `.docx` or `.odt` file in the Explorer or in Source Control and pick "Compare with Git HEAD". Both versions are turned into Markdown and open in the VS Code diff view, with changed words, table rows and headings marked. It's also in the `...` menu of the viewer.
+
+To compare two files, select both in the Explorer and pick "Compare with Another Document...", or run it on one file and pick the second. A `.docx` can be compared with an `.odt`.
+
+Git runs on your machine with hooks and fsmonitor turned off, and only in a trusted workspace. The compare shows text and structure. Changes to fonts, colors or images alone don't show.
 
 ## Commands
 
@@ -44,11 +52,13 @@ An old binary `.doc` file opens to a short message that explains the format and 
 | "DOCX Viewer: Open as Text" | Opens the plain text in a new untitled editor |
 | "DOCX Viewer: Open as Markdown" | Opens the Markdown in a new untitled editor |
 | "DOCX Viewer: Open in Default App" | Opens the file in Word, Pages or LibreOffice |
+| "DOCX Viewer: Compare with Git HEAD" | Shows what changed since the last commit, as a Markdown diff |
+| "DOCX Viewer: Compare with Another Document..." | Shows the differences between two documents, as a Markdown diff |
 | "DOCX Viewer: Open Sample Document" | Opens a short sample report |
 | "DOCX Viewer: Support the developer" | Opens the GitHub Sponsors page |
 | "DOCX Viewer: More free viewers" | Lists the other Zovo extensions and installs the one you pick |
 
-"Copy as Markdown" and "Open as Text" are also in the Explorer right-click menu for `.docx` files, so you can grab the text without opening the preview.
+"Copy as Markdown", "Open as Text" and the two compare commands are also in the Explorer right-click menu for `.docx` and `.odt` files, so you can grab the text without opening the preview.
 
 In the search box, `Enter` goes to the next match and `Shift+Enter` to the previous one. `Esc` clears it.
 
@@ -78,10 +88,11 @@ DOCX Viewer works offline. It makes no network calls and sends no telemetry. The
 - Charts, SmartArt and equations don't show. EMF, WMF and TIFF images show a placeholder. Tracked changes show the current text, and comments are left out.
 - Search finds text inside one formatting run. A word whose letters have mixed formatting may not match.
 - In Markdown, images become placeholder links such as `![](#image-1)` to keep the text small.
+- In `.odt` files, styles set by name in the document (Title, Quotations, Preformatted Text) and direct bold, italic, underline, strikethrough and superscript show. Other paragraph styles, frames and drawings are simplified. SVG and linked images show a placeholder. OpenDocument spreadsheets and presentations don't open.
 
 ## Credits
 
-The .docx conversion uses [mammoth](https://github.com/mwilliamson/mammoth.js) (BSD-2-Clause). See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for every bundled package and its license.
+The .docx conversion uses [mammoth](https://github.com/mwilliamson/mammoth.js) (BSD-2-Clause). The .odt reader is part of this extension and uses JSZip (MIT) and @xmldom/xmldom (MIT), which mammoth already bundles. See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for every bundled package and its license.
 
 ## License
 

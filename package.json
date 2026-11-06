@@ -1,8 +1,8 @@
 {
   "name": "docx-viewer-vscode",
   "displayName": "DOCX Viewer & Word Viewer with Dark Mode",
-  "description": "DOCX viewer and Word viewer for VS Code that opens .docx files as a read-only preview with dark mode, an outline, search and tables, all offline.",
-  "version": "0.1.4",
+  "description": "DOCX viewer and Word viewer for VS Code that opens .docx and .odt files as a read-only preview with dark mode, an outline, search, tables and a Git compare, all offline.",
+  "version": "0.2.0",
   "publisher": "zovo",
   "license": "MIT",
   "icon": "icon.png",
@@ -53,10 +53,10 @@
     "docx to text",
     "footnotes",
     "tables",
-    "reader",
+    "docx diff",
     "viewer",
-    "read only",
-    "offline"
+    "odt",
+    "odt viewer"
   ],
   "main": "./out/extension.js",
   "activationEvents": [],
@@ -80,6 +80,12 @@
           },
           {
             "filenamePattern": "*.docm"
+          },
+          {
+            "filenamePattern": "*.odt"
+          },
+          {
+            "filenamePattern": "*.ott"
           },
           {
             "filenamePattern": "*.doc"
@@ -118,6 +124,18 @@
         "title": "Open in Default App",
         "category": "DOCX Viewer",
         "icon": "$(link-external)"
+      },
+      {
+        "command": "docxViewer.compareWithHead",
+        "title": "Compare with Git HEAD",
+        "category": "DOCX Viewer",
+        "icon": "$(git-compare)"
+      },
+      {
+        "command": "docxViewer.compareWithDocument",
+        "title": "Compare with Another Document...",
+        "category": "DOCX Viewer",
+        "icon": "$(diff)"
       },
       {
         "command": "docxViewer.openSample",
@@ -169,24 +187,51 @@
           "command": "docxViewer.openInDefaultApp",
           "when": "activeCustomEditorId == 'docxViewer.preview'",
           "group": "1_docx@2"
+        },
+        {
+          "command": "docxViewer.compareWithHead",
+          "when": "activeCustomEditorId == 'docxViewer.preview' && isWorkspaceTrusted",
+          "group": "1_docx@3"
+        },
+        {
+          "command": "docxViewer.compareWithDocument",
+          "when": "activeCustomEditorId == 'docxViewer.preview'",
+          "group": "1_docx@4"
         }
       ],
       "explorer/context": [
         {
           "command": "docxViewer.openAsText",
-          "when": "resourceExtname =~ /^\\.(docx|dotx|docm)$/i",
+          "when": "resourceExtname =~ /^\\.(docx|dotx|docm|odt|ott)$/i",
           "group": "7_docx@1"
         },
         {
           "command": "docxViewer.copyAsMarkdown",
-          "when": "resourceExtname =~ /^\\.(docx|dotx|docm)$/i",
+          "when": "resourceExtname =~ /^\\.(docx|dotx|docm|odt|ott)$/i",
           "group": "7_docx@2"
+        },
+        {
+          "command": "docxViewer.compareWithHead",
+          "when": "resourceExtname =~ /^\\.(docx|dotx|docm|odt|ott)$/i && !explorerResourceIsFolder && isWorkspaceTrusted",
+          "group": "7_docx@3"
+        },
+        {
+          "command": "docxViewer.compareWithDocument",
+          "when": "resourceExtname =~ /^\\.(docx|dotx|docm|odt|ott)$/i && !explorerResourceIsFolder",
+          "group": "7_docx@4"
         }
       ],
       "commandPalette": [
         {
           "command": "docxViewer.find",
           "when": "activeCustomEditorId == 'docxViewer.preview'"
+        }
+      ],
+      "scm/resourceState/context": [
+        {
+          "command": "docxViewer.compareWithHead",
+          "when": "scmProvider == git && resourceExtname =~ /^\\.(docx|dotx|docm|odt|ott)$/i",
+          "group": "navigation@99"
         }
       ]
     },

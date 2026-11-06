@@ -18,6 +18,7 @@ class Uri {
 }
 const vscodeStub = {
   Uri,
+  EventEmitter: class { constructor() { this.event = () => ({ dispose() {} }); } dispose() {} },
   RelativePattern: class { constructor(b, p) { this.base = b; this.pattern = p; } },
   ViewColumn: { Beside: -2 },
   ProgressLocation: { Window: 10 },
@@ -29,7 +30,8 @@ const vscodeStub = {
     },
     createFileSystemWatcher: () => ({ onDidChange: () => ({ dispose() {} }), onDidCreate: () => ({ dispose() {} }), dispose() {} }),
     openTextDocument: async (o) => { calls.textDocs.push(o); return o; },
-    onDidChangeConfiguration: () => ({ dispose() {} })
+    onDidChangeConfiguration: () => ({ dispose() {} }),
+    registerTextDocumentContentProvider: () => ({ dispose() {} })
   },
   window: {
     showInformationMessage: (m) => calls.info.push(m),
@@ -97,6 +99,25 @@ test('ready triggers begin, chunks and end for a .docx', async () => {
   assert.strictEqual(panel.posted[0].meta.fileName, 'sample.docx');
   const end = panel.posted[panel.posted.length - 1];
   assert.strictEqual(end.outline.length, 7);
+});
+
+test('an .odt file renders through the worker with its outline (OpenDocument text)', async () => {
+  const { panel } = await open('report.odt');
+  const types = panel.posted.map((m) => m.type);
+  assert.strictEqual(types[0], 'begin');
+  assert.strictEqual(types[types.length - 1], 'end');
+  assert.strictEqual(panel.posted[0].meta.fileName, 'report.odt');
+  assert.strictEqual(panel.posted[panel.posted.length - 1].outline.length, 6);
+});
+
+test('convertBytes converts committed bytes and gives a notice for non-ZIP bytes', async () => {
+  const { convertBytes } = require('../src/extension');
+  const r = await convertBytes(fs.readFileSync(path.join(__dirname, 'fixtures', 'report.odt')), 'report.odt');
+  assert.ok(r.ok);
+  assert.match(r.markdown, /# Q3 2026 Field Report/);
+  const bad = await convertBytes(Buffer.from('version https://git-lfs.github.com/spec/v1'), 'a.docx');
+  assert.strictEqual(bad.ok, false);
+  assert.strictEqual(bad.notice.kind, 'notDocx');
 });
 
 test('.doc file shows the old-format notice with an open-in-app action', async () => {
@@ -188,4 +209,5 @@ test('support: activate registers Support the developer and More free viewers', 
     require('../src/extension').activate({ extensionUri: ctx.extensionUri, subscriptions: [], globalState: { get() {}, update: async () => {} } });
   } finally { vscodeStub.commands.registerCommand = orig; }
   assert.ok(registered.includes('docxViewer.supportDeveloper') && registered.includes('docxViewer.moreViewers'));
+  assert.ok(registered.includes('docxViewer.compareWithHead') && registered.includes('docxViewer.compareWithDocument'));
 });

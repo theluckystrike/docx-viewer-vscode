@@ -1,8 +1,10 @@
 'use strict';
-// Converts .docx/.dotx/.docm bytes to sanitized HTML chunks, outline, Markdown and text.
+// Converts .docx/.dotx/.docm and OpenDocument .odt/.ott bytes to sanitized HTML chunks, outline, Markdown and text.
 // Runs inside a worker thread (see worker.js) so a big file never blocks the extension host.
 
 const mammoth = require('mammoth');
+const JSZip = require('jszip');
+const { convertOdt, odfKind } = require('./odt');
 const H = require('./html');
 const { detectFormat, noticeFor } = require('./detect');
 
@@ -56,6 +58,27 @@ async function convertDocx(buf, options) {
   const buffer = Buffer.isBuffer(buf) ? buf : Buffer.from(buf.buffer || buf, buf.byteOffset || 0, buf.byteLength);
   const format = detectFormat(buffer);
   if (format !== 'zip') return { ok: false, notice: noticeFor(format, opts.ext || '') };
+  // OpenDocument packages are ZIP files too. Their first entry is an uncompressed "mimetype" file,
+  // so a .docx skips the extra ZIP read. .odt/.ott files are always checked in full.
+  const odfHint = buffer.length > 38 && buffer.toString('latin1', 30, 38) === 'mimetype';
+  let zip = null;
+  if (odfHint || /^\.ot[td]$/.test(opts.ext || '')) {
+    try { zip = await JSZip.loadAsync(buffer); } catch (_) { zip = null; }
+  }
+  const kind = zip ? await odfKind(zip) : null;
+  if (kind === 'other') {
+    return { ok: false, notice: { kind: 'notDocx', title: 'This is an OpenDocument spreadsheet, presentation or drawing', detail: 'DOCX Viewer reads Word files (.docx, .dotx, .docm) and OpenDocument text (.odt, .ott). Open this file in LibreOffice or another office app.' } };
+  }
+  if (kind === 'text') {
+    let r;
+    try {
+      r = await convertOdt(buffer, opts, zip);
+    } catch (err) {
+      return { ok: false, notice: { kind: 'error', title: 'DOCX Viewer could not read this OpenDocument file', detail: String((err && err.message) || err).slice(0, 500) } };
+    }
+    if (!r.ok) return r;
+    return finish(r.html, r.warnings, opts, t0, 'odt');
+  }
   const imgStats = { totalBytes: 0, skipped: 0 };
   let result;
   try {
@@ -75,20 +98,26 @@ async function convertDocx(buf, options) {
         : { kind: 'error', title: 'DOCX Viewer could not read this file', detail: msg.slice(0, 500) }
     };
   }
-  const clean = H.sanitize(H.parse(result.value));
-  const chunks = H.chunkBlocks(clean.tree, opts.maxChunkChars);
   const warnings = [];
   const seen = new Set();
   for (const m of result.messages || []) {
     const text = String(m.message || '').slice(0, 300);
     if (!seen.has(text) && warnings.length < 50) { seen.add(text); warnings.push(text); }
   }
+  return finish(result.value, warnings, opts, t0, 'docx');
+}
+
+// Shared by .docx and .odt: sanitize the converter HTML and derive chunks, outline, Markdown and text.
+function finish(rawHtml, warnings, opts, t0, format) {
+  const clean = H.sanitize(H.parse(rawHtml));
+  const chunks = H.chunkBlocks(clean.tree, opts.maxChunkChars);
   const text = H.toPlainText(clean.tree);
   return {
     ok: true,
+    format,
     chunks,
     outline: clean.outline,
-    warnings,
+    warnings: warnings.slice(0, 50),
     markdown: H.toMarkdown(clean.tree),
     text,
     stats: {
@@ -97,7 +126,7 @@ async function convertDocx(buf, options) {
       images: clean.images,
       skippedImages: clean.skippedImages,
       footnotes: clean.footnotes,
-      tables: (result.value.match(/<table/g) || []).length,
+      tables: (rawHtml.match(/<table/g) || []).length,
       htmlChars: chunks.reduce((n, c) => n + c.length, 0),
       ms: Date.now() - t0
     }

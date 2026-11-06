@@ -7,6 +7,7 @@ const { buildWebviewHtml } = require('./webview-html');
 const P = require('../media/protocol');
 const { createRatingPrompt } = require('./rate');
 const { registerSupport, commandUris, showLinks } = require('./support');
+const { registerCompare } = require('./compare');
 
 let rating = { success() {} };
 const counted = new WeakSet(); // panels already counted for the rating prompt
@@ -159,10 +160,22 @@ class DocxEditorProvider {
   }
 }
 
+function documentFor(uri, provider) {
+  for (const d of provider.panels.values()) if (d.uri.toString() === uri.toString()) return d;
+  return new DocxDocument(uri);
+}
+
+// Converts bytes that are not a file on disk (the committed version from git).
+async function convertBytes(bytes, name) {
+  const c = cfg();
+  const ext = path.extname(name).toLowerCase();
+  const format = detectFormat(bytes);
+  if (format !== 'zip') return { ok: false, notice: noticeFor(format, ext) || { kind: 'error', title: 'Unknown format', detail: '' } };
+  return convertInWorker(bytes, { ext, maxImageBytes: c.maxImageBytes, maxTotalImageBytes: c.maxTotalImageBytes });
+}
+
 async function resultFor(uri, provider) {
-  let document = null;
-  for (const d of provider.panels.values()) if (d.uri.toString() === uri.toString()) { document = d; break; }
-  const r = await provider.load(document || new DocxDocument(uri));
+  const r = await provider.load(documentFor(uri, provider));
   if (!r.ok) {
     vscode.window.showWarningMessage(r.notice.title + '. ' + r.notice.detail);
     return null;
@@ -204,6 +217,13 @@ function activate(context) {
   rating = createRatingPrompt({ vscode, context, extensionId: 'zovo.docx-viewer-vscode', section: 'docxViewer', message: (n) => `DOCX Viewer has opened ${n} files for you. A rating helps other people find it.` });
   registerSupport({ vscode, context, prefix: 'docxViewer', selfId: 'zovo.docx-viewer-vscode' });
   const provider = new DocxEditorProvider(context);
+  registerCompare({
+    vscode, context,
+    convertUri: (uri) => provider.load(documentFor(uri, provider)),
+    convertBytes,
+    maxBytes: () => cfg().maxFileBytes,
+    activeUri: () => { const d = provider.activeDocument(); return d ? d.uri : null; }
+  });
   context.subscriptions.push(
     vscode.window.registerCustomEditorProvider(VIEW_TYPE, provider, {
       supportsMultipleEditorsPerDocument: true,
@@ -237,4 +257,4 @@ function activate(context) {
 
 function deactivate() {}
 
-module.exports = { activate, deactivate, DocxEditorProvider, DocxDocument };
+module.exports = { activate, deactivate, DocxEditorProvider, DocxDocument, convertBytes };
