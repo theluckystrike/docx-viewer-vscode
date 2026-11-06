@@ -6,6 +6,7 @@ const { noticeFor, detectFormat } = require('./detect');
 const { buildWebviewHtml } = require('./webview-html');
 const P = require('../media/protocol');
 const { createRatingPrompt } = require('./rate');
+const { registerSupport, commandUris, showLinks } = require('./support');
 
 let rating = { success() {} };
 const counted = new WeakSet(); // panels already counted for the rating prompt
@@ -49,11 +50,14 @@ class DocxEditorProvider {
 
   async resolveCustomEditor(document, panel) {
     const media = vscode.Uri.joinPath(this.context.extensionUri, 'media');
-    panel.webview.options = { enableScripts: true, enableCommandUris: false, localResourceRoots: [media] };
+    // Command links only for the two support commands and the settings page (footer "Hide" link). Links inside the
+    // document never reach them: viewer.js catches every click in the document and the host drops command: links.
+    panel.webview.options = { enableScripts: true, enableCommandUris: commandUris('docxViewer'), localResourceRoots: [media] };
     const u = (f) => panel.webview.asWebviewUri(vscode.Uri.joinPath(media, f)).toString();
     panel.webview.html = buildWebviewHtml({
       cspSource: panel.webview.cspSource,
       theme: cfg().theme,
+      showSupportLinks: showLinks(vscode, 'docxViewer'),
       uris: { css: u('viewer.css'), protocol: u('protocol.js'), search: u('search.js'), viewer: u('viewer.js') }
     });
     this.panels.set(panel, document);
@@ -198,6 +202,7 @@ async function copyMarkdown(uri, provider) {
 
 function activate(context) {
   rating = createRatingPrompt({ vscode, context, extensionId: 'zovo.docx-viewer-vscode', section: 'docxViewer', message: (n) => `DOCX Viewer has opened ${n} files for you. A rating helps other people find it.` });
+  registerSupport({ vscode, context, prefix: 'docxViewer', selfId: 'zovo.docx-viewer-vscode' });
   const provider = new DocxEditorProvider(context);
   context.subscriptions.push(
     vscode.window.registerCustomEditorProvider(VIEW_TYPE, provider, {

@@ -80,10 +80,10 @@ async function open(file) {
   return { provider, doc, panel };
 }
 
-test('webview gets scripts enabled, command URIs off, and resources limited to media/', async () => {
+test('webview gets scripts enabled, command URIs only for the support links, and resources limited to media/', async () => {
   const { panel } = await open('sample.docx');
   assert.strictEqual(panel.webview.options.enableScripts, true);
-  assert.strictEqual(panel.webview.options.enableCommandUris, false);
+  assert.deepStrictEqual(panel.webview.options.enableCommandUris, ['docxViewer.supportDeveloper', 'docxViewer.moreViewers', 'workbench.action.openSettings']);
   assert.strictEqual(panel.webview.options.localResourceRoots.length, 1);
   assert.match(panel.webview.options.localResourceRoots[0].path, /media$/);
   assert.match(panel.webview.html, /Content-Security-Policy/);
@@ -150,4 +150,42 @@ test('unknown messages are ignored and closing the panel stops posting', async (
   assert.strictEqual(panel.posted.length, n);
   panel.close();
   assert.strictEqual(provider.panels.size, 0);
+});
+
+// ---------- support links (Sponsor, More free viewers) ----------
+test('support: package.json has the sponsor field, the two commands and the setting', () => {
+  const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+  const support = require('../src/support');
+  assert.strictEqual(pkg.sponsor.url, 'https://github.com/sponsors/theluckystrike');
+  assert.strictEqual(pkg.sponsor.url, support.sponsorUrl());
+  const ids = pkg.contributes.commands.map((c) => c.command);
+  assert.ok(ids.includes('docxViewer.supportDeveloper') && ids.includes('docxViewer.moreViewers'));
+  const cfgs = Array.isArray(pkg.contributes.configuration) ? pkg.contributes.configuration : [pkg.contributes.configuration];
+  assert.strictEqual(cfgs.map((c) => c.properties['docxViewer.showSupportLinks']).find(Boolean).default, true);
+  assert.ok(support.otherProducts('zovo.docx-viewer-vscode').every((p) => p.id !== 'zovo.docx-viewer-vscode'));
+});
+
+test('support: the footer shows by default and docxViewer.showSupportLinks=false hides it', async () => {
+  try {
+    for (const [value, shown] of [[undefined, true], [false, false]]) {
+      if (value === undefined) delete settings.showSupportLinks; else settings.showSupportLinks = value;
+      const { panel } = await open('sample.docx');
+      const html = panel.webview.html;
+      assert.strictEqual(/id="zovo-support"/.test(html), shown, String(value));
+      assert.strictEqual(html.includes('command:docxViewer.supportDeveloper'), shown);
+      const csp = /Content-Security-Policy" content="([^"]+)"/.exec(html)[1];
+      assert.ok(!/unsafe-(inline|eval)/.test(csp));
+      panel.close();
+    }
+  } finally { delete settings.showSupportLinks; }
+});
+
+test('support: activate registers Support the developer and More free viewers', () => {
+  const registered = [];
+  const orig = vscodeStub.commands.registerCommand;
+  vscodeStub.commands.registerCommand = (id) => { registered.push(id); return { dispose() {} }; };
+  try {
+    require('../src/extension').activate({ extensionUri: ctx.extensionUri, subscriptions: [], globalState: { get() {}, update: async () => {} } });
+  } finally { vscodeStub.commands.registerCommand = orig; }
+  assert.ok(registered.includes('docxViewer.supportDeveloper') && registered.includes('docxViewer.moreViewers'));
 });

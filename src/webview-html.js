@@ -2,6 +2,7 @@
 // Builds the webview shell. Document content never goes into this string; it
 // arrives later through postMessage as sanitized HTML.
 const crypto = require('crypto');
+const { footerHtml, FOOTER_CSS } = require('./support');
 
 function nonce() {
   return crypto.randomBytes(16).toString('base64').replace(/[^A-Za-z0-9]/g, '');
@@ -12,12 +13,14 @@ function escapeAttr(s) {
 }
 
 // uris: { css, protocol, search, viewer } as strings; cspSource: webview.cspSource.
+// opts.showSupportLinks: false leaves out the small Sponsor and More free viewers line (setting docxViewer.showSupportLinks).
 function buildWebviewHtml(opts) {
   const n = opts.nonce || nonce();
+  const footer = footerHtml('docxViewer', opts.showSupportLinks !== false, 'zovo-support-fixed');
   const csp = [
     "default-src 'none'",
     'img-src data: ' + opts.cspSource,
-    'style-src ' + opts.cspSource,
+    'style-src ' + opts.cspSource + " 'nonce-" + n + "'",
     'font-src ' + opts.cspSource,
     "script-src 'nonce-" + n + "'",
     "connect-src 'none'",
@@ -32,6 +35,7 @@ function buildWebviewHtml(opts) {
 <meta http-equiv="Content-Security-Policy" content="${escapeAttr(csp)}">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="${escapeAttr(opts.uris.css)}">
+${footer ? `<style nonce="${n}">${FOOTER_CSS}</style>` : ''}
 <title>DOCX Viewer</title>
 </head>
 <body data-theme="${escapeAttr(opts.theme || 'auto')}">
@@ -57,6 +61,7 @@ function buildWebviewHtml(opts) {
     <details id="dv-warnings" class="dv-warnings" hidden><summary></summary><ul></ul></details>
   </main>
 </div>
+${footer}
 <script nonce="${n}" src="${escapeAttr(opts.uris.protocol)}"></script>
 <script nonce="${n}" src="${escapeAttr(opts.uris.search)}"></script>
 <script nonce="${n}" src="${escapeAttr(opts.uris.viewer)}"></script>
