@@ -1,10 +1,10 @@
 # DOCX Viewer & Word Viewer with Dark Mode
 
-Open Word .docx files right in VS Code and read them in dark mode, with an outline, search and tables, without leaving the editor.
+For developers who get specs and contracts as Word files, DOCX Viewer opens .docx files in VS Code as a dark-mode preview with an outline, search and tables.
 
-![A Word report open in DOCX Viewer in dark mode, with the heading outline on the left and 6 matches for "revenue" highlighted](images/screenshot-dark.png)
+![A Word report open in VS Code in dark mode, with the heading outline on the left and a search for revenue on match 1 of 6](https://raw.githubusercontent.com/theluckystrike/docx-viewer-vscode/main/images/vscode-docx-dark.png)
 
-*Real output. The webview HTML and `media/` files from this extension rendered the sample document [`test/fixtures/sample.docx`](test/fixtures/sample.docx) in headless Chrome, with VS Code's Dark Modern colors passed in as `--vscode-*` variables. `npm run screenshot` makes it again.*
+*A real VS Code 1.142 window running this extension on [`test/fixtures/sample.docx`](test/fixtures/sample.docx), a generated 2 page field report with a table and a chart.*
 
 - Read specs, contracts and reports next to your code. The page follows your VS Code theme, or switch to white paper with one click.
 - Find things fast. Search shows a match count, and the outline jumps to any heading.
@@ -14,6 +14,10 @@ Open Word .docx files right in VS Code and read them in dark mode, with an outli
 
 1. Install DOCX Viewer.
 2. Click any `.docx` or `.dotx` file in the Explorer. It opens as a read-only preview. Press `Ctrl+F` (`Cmd+F` on macOS) to search.
+
+![A click on the .docx file opens it. Typing revenue marks 6 matches and Enter steps through them, a click on Installations in the outline jumps to that heading, and the theme button switches to white paper](https://raw.githubusercontent.com/theluckystrike/docx-viewer-vscode/main/images/demo-docx.gif)
+
+*Recorded in the same window. The white arrow is drawn in to show where each click lands.*
 
 No .docx at hand? Run "DOCX Viewer: Open Sample Document" from the Command Palette.
 

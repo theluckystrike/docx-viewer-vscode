@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4 (2026-11-06)
+
+- The Marketplace page now starts with a screenshot of a real VS Code window with a .docx in dark mode and a search, and a short GIF of searching, the outline and the paper theme. Both were made from generated sample files. The images load from the GitHub repo and are not packed into the extension, so the download size stays the same.
+
 ## 0.1.3 (2026-11-06)
 
 - A small line at the bottom right of the viewer has two links, "Sponsor" (GitHub Sponsors) and "More free viewers". The new setting `docxViewer.showSupportLinks` (default `true`) hides it, and so does the "Hide" link next to them. There is no popup, and nothing is sent anywhere.
