@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="300" viewBox="0 0 640 300">
+  <rect width="640" height="300" fill="#ffffff"/>
+  <text x="24" y="34" font-family="Helvetica, Arial, sans-serif" font-size="18" fill="#1f2937" font-weight="bold">Installed capacity by quarter (MW)</text>
+  <g font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#4b5563">
+    <line x1="60" y1="260" x2="610" y2="260" stroke="#9ca3af"/>
+    <rect x="90"  y="170" width="80" height="90"  fill="#2563eb"/><text x="104" y="280">Q4 25</text><text x="114" y="162">9.0</text>
+    <rect x="220" y="140" width="80" height="120" fill="#2563eb"/><text x="234" y="280">Q1 26</text><text x="240" y="132">12.0</text>
+    <rect x="350" y="118" width="80" height="142" fill="#2563eb"/><text x="364" y="280">Q2 26</text><text x="370" y="110">14.2</text>
+    <rect x="480" y="78"  width="80" height="182" fill="#0d9488"/><text x="494" y="280">Q3 26</text><text x="500" y="70">18.2</text>
+  </g>
+</svg>

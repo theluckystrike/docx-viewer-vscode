@@ -1,0 +1,281 @@
+{
+  "name": "docx-viewer-vscode",
+  "displayName": "DOCX Viewer: Word Preview, Dark Mode, Search",
+  "description": "Open Word .docx and .dotx files in VS Code as a read-only preview with dark mode, a heading outline, search, tables, images and footnotes. Copy as Markdown or open as plain text. Works offline.",
+  "version": "0.1.0",
+  "publisher": "zovo",
+  "license": "MIT",
+  "icon": "icon.png",
+  "galleryBanner": {
+    "color": "#16233F",
+    "theme": "dark"
+  },
+  "homepage": "https://github.com/theluckystrike/docx-viewer-vscode#readme",
+  "bugs": {
+    "url": "https://github.com/theluckystrike/docx-viewer-vscode/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/theluckystrike/docx-viewer-vscode"
+  },
+  "engines": {
+    "vscode": "^1.90.0",
+    "node": ">=18"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "docx",
+    "docx viewer",
+    "docx preview",
+    "word",
+    "word viewer",
+    "word preview",
+    "microsoft word",
+    "ms word",
+    "word document",
+    "dotx",
+    "docm",
+    "office",
+    "office viewer",
+    "document viewer",
+    "document preview",
+    "doc",
+    "reader",
+    "viewer",
+    "preview",
+    "dark mode",
+    "outline",
+    "search",
+    "docx to markdown",
+    "word to markdown",
+    "docx to text",
+    "mammoth",
+    "tables",
+    "footnotes",
+    "offline",
+    "read only"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [],
+  "capabilities": {
+    "virtualWorkspaces": true,
+    "untrustedWorkspaces": {
+      "supported": true
+    }
+  },
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "docxViewer.preview",
+        "displayName": "DOCX Viewer",
+        "selector": [
+          {
+            "filenamePattern": "*.docx"
+          },
+          {
+            "filenamePattern": "*.dotx"
+          },
+          {
+            "filenamePattern": "*.docm"
+          },
+          {
+            "filenamePattern": "*.doc"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "commands": [
+      {
+        "command": "docxViewer.find",
+        "title": "Find in Document",
+        "category": "DOCX Viewer",
+        "icon": "$(search)"
+      },
+      {
+        "command": "docxViewer.copyAsMarkdown",
+        "title": "Copy as Markdown",
+        "category": "DOCX Viewer",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "docxViewer.openAsText",
+        "title": "Open as Text",
+        "category": "DOCX Viewer",
+        "icon": "$(file-text)"
+      },
+      {
+        "command": "docxViewer.openAsMarkdown",
+        "title": "Open as Markdown",
+        "category": "DOCX Viewer",
+        "icon": "$(markdown)"
+      },
+      {
+        "command": "docxViewer.openInDefaultApp",
+        "title": "Open in Default App",
+        "category": "DOCX Viewer",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "docxViewer.openSample",
+        "title": "Open Sample Document",
+        "category": "DOCX Viewer"
+      },
+      {
+        "command": "docxViewer.openWalkthrough",
+        "title": "Get Started",
+        "category": "DOCX Viewer"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "docxViewer.find",
+        "key": "ctrl+f",
+        "mac": "cmd+f",
+        "when": "activeCustomEditorId == 'docxViewer.preview'"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "docxViewer.copyAsMarkdown",
+          "when": "activeCustomEditorId == 'docxViewer.preview'",
+          "group": "navigation@1"
+        },
+        {
+          "command": "docxViewer.openAsText",
+          "when": "activeCustomEditorId == 'docxViewer.preview'",
+          "group": "navigation@2"
+        },
+        {
+          "command": "docxViewer.openAsMarkdown",
+          "when": "activeCustomEditorId == 'docxViewer.preview'",
+          "group": "1_docx@1"
+        },
+        {
+          "command": "docxViewer.openInDefaultApp",
+          "when": "activeCustomEditorId == 'docxViewer.preview'",
+          "group": "1_docx@2"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "docxViewer.openAsText",
+          "when": "resourceExtname =~ /^\\.(docx|dotx|docm)$/i",
+          "group": "7_docx@1"
+        },
+        {
+          "command": "docxViewer.copyAsMarkdown",
+          "when": "resourceExtname =~ /^\\.(docx|dotx|docm)$/i",
+          "group": "7_docx@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "docxViewer.find",
+          "when": "activeCustomEditorId == 'docxViewer.preview'"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "DOCX Viewer",
+      "properties": {
+        "docxViewer.theme": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "light",
+            "dark"
+          ],
+          "enumDescriptions": [
+            "Follow the VS Code color theme",
+            "White paper with dark text, like Word",
+            "Dark page with light text"
+          ],
+          "default": "auto",
+          "description": "Page colors for the document."
+        },
+        "docxViewer.maxFileSizeMB": {
+          "type": "number",
+          "default": 50,
+          "minimum": 1,
+          "description": "Files larger than this ask before they open, so VS Code stays responsive."
+        },
+        "docxViewer.maxImageSizeMB": {
+          "type": "number",
+          "default": 5,
+          "minimum": 0.1,
+          "description": "Images larger than this are replaced by a short placeholder."
+        },
+        "docxViewer.maxTotalImagesMB": {
+          "type": "number",
+          "default": 40,
+          "minimum": 1,
+          "description": "After this many MB of images in one document, further images are replaced by placeholders."
+        }
+      }
+    },
+    "walkthroughs": [
+      {
+        "id": "docxViewer.start",
+        "title": "Get started with DOCX Viewer",
+        "description": "Read Word documents inside VS Code, search them and copy them as Markdown.",
+        "steps": [
+          {
+            "id": "open",
+            "title": "Open a Word document",
+            "description": "Click any .docx or .dotx file in the Explorer. It opens as a read-only preview.\n[Open the sample document](command:docxViewer.openSample)",
+            "media": {
+              "image": "images/screenshot-dark.png",
+              "altText": "A Word report open in VS Code with the outline on the left and three search matches highlighted."
+            },
+            "completionEvents": [
+              "onCommand:docxViewer.openSample"
+            ]
+          },
+          {
+            "id": "search",
+            "title": "Search and jump",
+            "description": "Press Ctrl+F (Cmd+F on macOS) to search. Enter goes to the next match, Shift+Enter to the previous one. Click a heading in the outline to jump to it.\n[Find in document](command:docxViewer.find)",
+            "media": {
+              "markdown": "walkthrough/search.md"
+            },
+            "completionEvents": [
+              "onCommand:docxViewer.find"
+            ]
+          },
+          {
+            "id": "markdown",
+            "title": "Copy as Markdown",
+            "description": "Copy the whole document as Markdown with tables and footnotes, or open its plain text in a new editor.\n[Copy as Markdown](command:docxViewer.copyAsMarkdown)",
+            "media": {
+              "markdown": "walkthrough/markdown.md"
+            },
+            "completionEvents": [
+              "onCommand:docxViewer.copyAsMarkdown",
+              "onCommand:docxViewer.openAsText"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node scripts/build.js",
+    "test": "node --test test/*.test.js",
+    "sample": "python3 scripts/make-sample.py",
+    "screenshot": "node scripts/screenshot.js",
+    "vscode:prepublish": "node scripts/build.js",
+    "smoke": "scripts/smoke-vscode.sh",
+    "package": "npx -y @vscode/vsce@3 package --no-dependencies -o dist/"
+  },
+  "dependencies": {
+    "mammoth": "^1.13.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.2"
+  }
+}
