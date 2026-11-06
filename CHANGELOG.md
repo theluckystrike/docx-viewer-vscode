@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 (2026-11-07)
+
+- The "More free viewers" list and the README list now show the 15 Zovo extensions on the Marketplace under their current names, and 12 that are coming soon.
+- Extensions for related files now come first, starting with PPTX Viewer & PowerPoint Viewer and PDF Viewer & PDF Reader with Dark Mode.
+
 ## 0.2.0 (2026-11-06)
 
 - OpenDocument text files (`.odt`, and `.ott` templates) open in the viewer, with the same outline, search, dark mode, tables, images, footnotes, Copy as Markdown and Open as Text as a `.docx`. An `.odt` saved with a `.docx` name opens too. OpenDocument spreadsheets and presentations get a short message instead.
