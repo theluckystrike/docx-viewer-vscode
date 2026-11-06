@@ -2,7 +2,7 @@
   "name": "docx-viewer-vscode",
   "displayName": "DOCX Viewer & Word Viewer with Dark Mode",
   "description": "DOCX viewer and Word viewer for VS Code that opens .docx files as a read-only preview with dark mode, an outline, search and tables, all offline.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "zovo",
   "license": "MIT",
   "icon": "icon.png",
@@ -215,6 +215,11 @@
           "default": 40,
           "minimum": 1,
           "description": "After this many MB of images in one document, further images are replaced by placeholders."
+        },
+        "docxViewer.askForRating": {
+          "type": "boolean",
+          "default": true,
+          "description": "Ask one time for a Marketplace rating after you have used DOCX Viewer for a few days. You can answer \"Later\" or \"Don't ask again\". Nothing is sent anywhere."
         }
       }
     },

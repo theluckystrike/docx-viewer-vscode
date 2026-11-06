@@ -54,6 +54,7 @@ In the search box, `Enter` goes to the next match and `Shift+Enter` to the previ
 | `docxViewer.maxFileSizeMB` | `50` | Bigger files ask before they open |
 | `docxViewer.maxImageSizeMB` | `5` | Bigger images show a placeholder instead |
 | `docxViewer.maxTotalImagesMB` | `40` | After this many MB of images, the rest show placeholders |
+| `docxViewer.askForRating` | `true` | Ask one time for a Marketplace rating, after 5 files and 2 days. Turn it off with `false` |
 
 ## Big files
 

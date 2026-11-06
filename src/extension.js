@@ -5,6 +5,10 @@ const { convertInWorker } = require('./run-worker');
 const { noticeFor, detectFormat } = require('./detect');
 const { buildWebviewHtml } = require('./webview-html');
 const P = require('../media/protocol');
+const { createRatingPrompt } = require('./rate');
+
+let rating = { success() {} };
+const counted = new WeakSet(); // panels already counted for the rating prompt
 
 const VIEW_TYPE = 'docxViewer.preview';
 const MB = 1024 * 1024;
@@ -141,6 +145,7 @@ class DocxEditorProvider {
       if (!this.panels.has(panel)) return;
       await post(m);
     }
+    if (!counted.has(panel)) { counted.add(panel); rating.success(); }
   }
 
   activeDocument() {
@@ -192,6 +197,7 @@ async function copyMarkdown(uri, provider) {
 }
 
 function activate(context) {
+  rating = createRatingPrompt({ vscode, context, extensionId: 'zovo.docx-viewer-vscode', section: 'docxViewer', message: (n) => `DOCX Viewer has opened ${n} files for you. A rating helps other people find it.` });
   const provider = new DocxEditorProvider(context);
   context.subscriptions.push(
     vscode.window.registerCustomEditorProvider(VIEW_TYPE, provider, {
