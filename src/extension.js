@@ -3,7 +3,7 @@ const vscode = require('vscode');
 const path = require('path');
 const { convertInWorker } = require('./run-worker');
 const { noticeFor, detectFormat, canConvert } = require('./detect');
-const { buildWebviewHtml } = require('./webview-html');
+const { buildWebviewHtml, buildPageHtml } = require('./webview-html');
 const P = require('../media/protocol');
 const { createRatingPrompt } = require('./rate');
 const { registerSupport, commandUris, showLinks } = require('./support');
@@ -22,9 +22,21 @@ function cfg() {
     maxFileBytes: num('maxFileSizeMB', 50, 1) * MB,
     maxImageBytes: num('maxImageSizeMB', 5, 0.1) * MB,
     maxTotalImageBytes: num('maxTotalImagesMB', 40, 1) * MB,
-    theme: P.THEMES.includes(c.get('theme')) ? c.get('theme') : 'auto'
+    theme: P.THEMES.includes(c.get('theme')) ? c.get('theme') : 'auto',
+    defaultView: P.VIEWS.includes(c.get('defaultView')) ? c.get('defaultView') : 'reading',
+    zoom: P.clampZoom(c.get('zoom', 1)),
+    pageMaxBytes: num('pageViewMaxMB', 20, 1) * MB
   };
 }
+
+// Page view lays out Word packages only; .odt and old .doc files stay in Reading view.
+const PAGE_EXT = /\.(docx|dotx|docm)$/i;
+const VIEW_KEY = 'docxViewer.view';
+const ZOOM_KEY = 'docxViewer.zoom';
+const NOTES = {
+  tooLarge: 'This file is too large for Page view. Reading view is faster for it.',
+  failed: 'Page view could not lay out this file, so it opens in Reading view.'
+};
 
 class DocxDocument {
   constructor(uri) {
@@ -32,6 +44,7 @@ class DocxDocument {
     this.result = null; // { ok, ... } from the converter
     this.pending = null;
     this.allowLarge = false;
+    this.allowLargePage = false;
     this.version = 0;
   }
   invalidate() { this.result = null; this.pending = null; this.version++; }
@@ -42,7 +55,43 @@ class DocxEditorProvider {
   constructor(context) {
     this.context = context;
     this.panels = new Map(); // panel -> document
+    this.views = new Map(); // panel -> 'reading' | 'page'
+    this.notes = new Map(); // panel -> { text, actions } shown once above Reading view
     this.active = null;
+  }
+
+  pageAvailable(document) { return PAGE_EXT.test(document.uri.path); }
+
+  // The user's last switch in this workspace, else the docxViewer.defaultView setting.
+  preferredView(document) {
+    if (!this.pageAvailable(document)) return 'reading';
+    const ws = this.context.workspaceState;
+    const saved = ws && ws.get(VIEW_KEY);
+    return P.VIEWS.includes(saved) ? saved : cfg().defaultView;
+  }
+
+  zoom() {
+    const ws = this.context.workspaceState;
+    const saved = ws && ws.get(ZOOM_KEY);
+    return typeof saved === 'number' ? P.clampZoom(saved) : cfg().zoom;
+  }
+
+  // Sets the panel HTML for a view. Reading view keeps its own strict CSP; Page view gets the
+  // CSP that docx-preview needs (inline styles, blob: images and fonts).
+  setView(panel, document, view) {
+    const media = vscode.Uri.joinPath(this.context.extensionUri, 'media');
+    const u = (f) => panel.webview.asWebviewUri(vscode.Uri.joinPath(media, f)).toString();
+    const common = { cspSource: panel.webview.cspSource, theme: cfg().theme, zoom: this.zoom(), showSupportLinks: showLinks(vscode, 'docxViewer') };
+    this.views.set(panel, view);
+    panel.webview.html = view === 'page'
+      ? buildPageHtml({ ...common, uris: { css: u('viewer.css'), protocol: u('protocol.js'), search: u('search.js'), pageView: u('page-view.js'), page: u('page.js') } })
+      : buildWebviewHtml({ ...common, pageAvailable: this.pageAvailable(document), uris: { css: u('viewer.css'), protocol: u('protocol.js'), search: u('search.js'), viewer: u('viewer.js') } });
+  }
+
+  async switchView(panel, document, view, remember) {
+    if (view === 'page' && !this.pageAvailable(document)) return;
+    if (remember && this.context.workspaceState) await this.context.workspaceState.update(VIEW_KEY, view);
+    this.setView(panel, document, view);
   }
 
   async openCustomDocument(uri) {
@@ -54,13 +103,7 @@ class DocxEditorProvider {
     // Command links only for the two support commands and the settings page (footer "Hide" link). Links inside the
     // document never reach them: viewer.js catches every click in the document and the host drops command: links.
     panel.webview.options = { enableScripts: true, enableCommandUris: commandUris('docxViewer'), localResourceRoots: [media] };
-    const u = (f) => panel.webview.asWebviewUri(vscode.Uri.joinPath(media, f)).toString();
-    panel.webview.html = buildWebviewHtml({
-      cspSource: panel.webview.cspSource,
-      theme: cfg().theme,
-      showSupportLinks: showLinks(vscode, 'docxViewer'),
-      uris: { css: u('viewer.css'), protocol: u('protocol.js'), search: u('search.js'), viewer: u('viewer.js') }
-    });
+    this.setView(panel, document, this.preferredView(document));
     this.panels.set(panel, document);
     if (panel.active) this.active = panel;
 
@@ -89,6 +132,16 @@ class DocxEditorProvider {
     if (m.type === 'ready') return this.render(panel, document);
     if (m.type === 'openLink') return vscode.env.openExternal(vscode.Uri.parse(m.href, true));
     if (m.type === 'setTheme') return; // per-panel choice, kept in webview state
+    if (m.type === 'setZoom') {
+      if (this.context.workspaceState) await this.context.workspaceState.update(ZOOM_KEY, m.zoom);
+      for (const p of this.panels.keys()) if (p !== panel) p.webview.postMessage({ type: 'zoom', zoom: m.zoom });
+      return;
+    }
+    if (m.type === 'pageRendered') { this.lastPageRender = m; return; }
+    if (m.type === 'pageFailed') {
+      this.notes.set(panel, { text: NOTES.failed, actions: [] });
+      return this.switchView(panel, document, 'reading', false);
+    }
     switch (m.name) {
       case 'openAsText': return openAsText(document.uri, this);
       case 'copyMarkdown': return copyMarkdown(document.uri, this);
@@ -96,6 +149,9 @@ class DocxEditorProvider {
       case 'openSettings': return vscode.commands.executeCommand('workbench.action.openSettings', 'docxViewer.maxFileSizeMB');
       case 'openAnyway': document.allowLarge = true; document.invalidate(); return this.render(panel, document);
       case 'reload': document.invalidate(); return this.render(panel, document);
+      case 'showPage': return this.switchView(panel, document, 'page', true);
+      case 'showReading': return this.switchView(panel, document, 'reading', true);
+      case 'pageAnyway': document.allowLargePage = true; return this.switchView(panel, document, 'page', false);
     }
   }
 
@@ -132,8 +188,33 @@ class DocxEditorProvider {
     return r;
   }
 
+  // Page view: send the file bytes to the webview, which lays them out. Files above
+  // docxViewer.pageViewMaxMB go to Reading view with a note and an "anyway" button.
+  async renderPage(panel, document) {
+    const c = cfg();
+    let size = 0;
+    try {
+      size = (await vscode.workspace.fs.stat(document.uri)).size;
+    } catch (_) {
+      return this.switchView(panel, document, 'reading', false);
+    }
+    if ((size > c.pageMaxBytes && !document.allowLargePage) || (size > c.maxFileBytes && !document.allowLarge)) {
+      this.notes.set(panel, { text: NOTES.tooLarge, actions: size > c.maxFileBytes && !document.allowLarge ? [] : ['pageAnyway'] });
+      return this.switchView(panel, document, 'reading', false);
+    }
+    const bytes = await vscode.workspace.fs.readFile(document.uri);
+    if (detectFormat(bytes) !== 'zip') {
+      return this.switchView(panel, document, 'reading', false);
+    }
+    if (!this.panels.has(panel)) return;
+    return panel.webview.postMessage({ type: 'pageData', v: P.VERSION, meta: this.meta(document, size), theme: c.theme, zoom: this.zoom(), bytes });
+  }
+
   async render(panel, document) {
+    if (this.views.get(panel) === 'page') return this.renderPage(panel, document);
     const post = (m) => panel.webview.postMessage(m);
+    const note = this.notes.get(panel);
+    this.notes.delete(panel);
     let r;
     try {
       r = await this.load(document);
@@ -146,7 +227,8 @@ class DocxEditorProvider {
       const actions = r.tooLarge ? ['openAnyway', 'openInDefaultApp', 'openSettings'] : r.notice.kind === 'error' ? ['reload', 'openInDefaultApp'] : ['openInDefaultApp'];
       return post(P.buildNotice(r.notice, meta, actions));
     }
-    for (const m of P.buildRenderMessages(r, meta)) {
+    const shown = note ? Object.assign({}, r, { banner: note.text + (r.banner ? ' ' + r.banner : ''), bannerActions: note.actions.concat(r.bannerActions || []) }) : r;
+    for (const m of P.buildRenderMessages(shown, meta)) {
       if (!this.panels.has(panel)) return;
       await post(m);
     }
@@ -247,6 +329,9 @@ function activate(context) {
       if (e.affectsConfiguration('docxViewer.theme')) {
         for (const p of provider.panels.keys()) p.webview.postMessage({ type: 'theme', theme: cfg().theme });
       }
+      if (e.affectsConfiguration('docxViewer.zoom')) {
+        for (const p of provider.panels.keys()) p.webview.postMessage({ type: 'zoom', zoom: cfg().zoom });
+      }
       if (e.affectsConfiguration('docxViewer.maxImageSizeMB') || e.affectsConfiguration('docxViewer.maxTotalImagesMB') || e.affectsConfiguration('docxViewer.maxFileSizeMB')) {
         for (const [p, d] of provider.panels) { d.invalidate(); provider.render(p, d); }
       }
@@ -257,4 +342,4 @@ function activate(context) {
 
 function deactivate() {}
 
-module.exports = { activate, deactivate, DocxEditorProvider, DocxDocument, convertBytes };
+module.exports = { activate, deactivate, DocxEditorProvider, DocxDocument, convertBytes, NOTES };

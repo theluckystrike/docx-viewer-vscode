@@ -231,3 +231,111 @@ test('support: activate registers Support the developer and More free viewers', 
   assert.ok(registered.includes('docxViewer.supportDeveloper') && registered.includes('docxViewer.moreViewers'));
   assert.ok(registered.includes('docxViewer.compareWithHead') && registered.includes('docxViewer.compareWithDocument'));
 });
+
+// ---------- Page view switching (host side) ----------
+const os = require('os');
+const { NOTES } = require('../src/extension');
+function memento() { const m = new Map(); return { get: (k) => m.get(k), update: async (k, v) => { m.set(k, v); }, map: m }; }
+const settle = () => new Promise((r) => setTimeout(r, 0));
+
+test('Page view: the switch is offered for .docx only, swaps the CSP and sends the file bytes', async () => {
+  ctx.workspaceState = memento();
+  try {
+    const { panel, doc } = await open('sample.docx');
+    assert.match(panel.webview.html, /data-cmd="showPage"/);
+    assert.ok(!/unsafe-inline/.test(panel.webview.html));
+    await panel.send({ type: 'command', name: 'showPage' });
+    assert.strictEqual(ctx.workspaceState.get('docxViewer.view'), 'page', 'the switch is remembered for the workspace');
+    assert.match(panel.webview.html, /style-src vscode-resource: &#39;unsafe-inline&#39;|style-src vscode-resource: 'unsafe-inline'/);
+    assert.match(panel.webview.html, /data-cmd="showReading"/);
+    panel.posted.length = 0;
+    await panel.send({ type: 'ready' });
+    assert.strictEqual(panel.posted.length, 1);
+    assert.strictEqual(panel.posted[0].type, 'pageData');
+    assert.ok(panel.posted[0].bytes instanceof Uint8Array);
+    assert.strictEqual(panel.posted[0].bytes.length, fs.statSync(doc.uri.fsPath).size);
+    // A new panel in the same workspace opens in Page view.
+    const again = await open('sample.docx');
+    assert.strictEqual(again.panel.posted[0].type, 'pageData');
+    // .odt and .doc never get Page view, even when it is the remembered choice.
+    const odt = await open('report.odt');
+    assert.ok(!/data-cmd="showPage"/.test(odt.panel.webview.html));
+    assert.strictEqual(odt.panel.posted[0].type, 'begin');
+    await odt.panel.send({ type: 'command', name: 'showPage' });
+    assert.ok(!/unsafe-inline/.test(odt.panel.webview.html));
+    await again.panel.send({ type: 'command', name: 'showReading' });
+    assert.strictEqual(ctx.workspaceState.get('docxViewer.view'), 'reading');
+  } finally { delete ctx.workspaceState; }
+});
+
+test('Page view failure falls back to Reading view with a notice, never an empty page', async () => {
+  settings.defaultView = 'page';
+  try {
+    const { panel } = await open('sample.docx');
+    assert.strictEqual(panel.posted[0].type, 'pageData');
+    panel.posted.length = 0;
+    await panel.send({ type: 'pageFailed', reason: 'error' });
+    assert.ok(!/unsafe-inline/.test(panel.webview.html), 'back to the Reading view HTML');
+    await panel.send({ type: 'ready' });
+    const begin = panel.posted[0];
+    assert.strictEqual(begin.type, 'begin');
+    assert.strictEqual(begin.banner, NOTES.failed);
+    assert.strictEqual(begin.banner, 'Page view could not lay out this file, so it opens in Reading view.');
+    assert.ok(panel.posted.some((m) => m.type === 'chunk' && m.html.length > 100));
+  } finally { delete settings.defaultView; }
+});
+
+test('size guard: a 25 MB file opens in Reading view with the note and an "anyway" button', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docxv-big-'));
+  settings.defaultView = 'page';
+  try {
+    const big = path.join(dir, 'big.docx');
+    const fd = fs.openSync(big, 'w');
+    fs.writeSync(fd, fs.readFileSync(path.join(__dirname, 'fixtures', 'sample.docx')));
+    fs.ftruncateSync(fd, 25 * 1024 * 1024);
+    fs.closeSync(fd);
+    const provider = new DocxEditorProvider(ctx);
+    const doc = await provider.openCustomDocument(Uri.file(big));
+    const panel = fakePanel();
+    await provider.resolveCustomEditor(doc, panel);
+    await panel.send({ type: 'ready' });
+    await settle();
+    assert.ok(!/unsafe-inline/.test(panel.webview.html));
+    panel.posted.length = 0;
+    await panel.send({ type: 'ready' });
+    assert.strictEqual(panel.posted[0].type, 'begin');
+    assert.strictEqual(panel.posted[0].banner, 'This file is too large for Page view. Reading view is faster for it.');
+    assert.deepStrictEqual(panel.posted[0].bannerActions, ['pageAnyway']);
+    await panel.send({ type: 'command', name: 'pageAnyway' });
+    panel.posted.length = 0;
+    await panel.send({ type: 'ready' });
+    assert.strictEqual(panel.posted[0].type, 'pageData');
+  } finally {
+    delete settings.defaultView;
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('zoom from one panel is saved for the workspace and sent to the other panels', async () => {
+  ctx.workspaceState = memento();
+  try {
+    const a = await open('sample.docx');
+    const b = fakePanel();
+    await a.provider.resolveCustomEditor(await a.provider.openCustomDocument(fixture('report.odt')), b);
+    await a.panel.send({ type: 'setZoom', zoom: 1.3 });
+    assert.strictEqual(ctx.workspaceState.get('docxViewer.zoom'), 1.3);
+    assert.ok(b.posted.some((m) => m.type === 'zoom' && m.zoom === 1.3));
+    assert.ok(!a.panel.posted.some((m) => m.type === 'zoom'), 'not echoed to the sender');
+    const c = await open('sample.docx');
+    assert.match(c.panel.webview.html, /data-zoom="1\.3"/);
+  } finally { delete ctx.workspaceState; }
+});
+
+test('package.json declares the Page view settings', () => {
+  const pj = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+  const props = pj.contributes.configuration.properties;
+  assert.deepStrictEqual(props['docxViewer.defaultView'].enum, ['reading', 'page']);
+  assert.strictEqual(props['docxViewer.defaultView'].default, 'reading');
+  assert.strictEqual(props['docxViewer.pageViewMaxMB'].default, 20);
+  assert.strictEqual(props['docxViewer.zoom'].default, 1);
+});

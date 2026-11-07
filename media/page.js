@@ -1,0 +1,277 @@
+// Page view webview script. Lays out the .docx with docx-preview (window.DocxPreview, bundled
+// from src/page-entry.js into media/page-view.js) and adds outline, search, zoom, links and the
+// fallback to Reading view. Helpers are exported for the unit tests (require in Node with jsdom).
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else {
+    root.DocxPage = api;
+    if (typeof acquireVsCodeApi === 'function') api.boot(root, acquireVsCodeApi());
+  }
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  // docx-preview options. altChunks are raw HTML parts, so they never render. Changes and
+  // comments stay off. Blob URLs keep memory lower than base64 for images.
+  const RENDER_OPTIONS = {
+    className: 'docx',
+    inWrapper: true,
+    breakPages: true,
+    ignoreLastRenderedPageBreak: true,
+    ignoreWidth: false,
+    ignoreHeight: false,
+    ignoreFonts: false,
+    renderHeaders: true,
+    renderFooters: true,
+    renderFootnotes: true,
+    renderEndnotes: true,
+    renderAltChunks: false,
+    renderChanges: false,
+    renderComments: false,
+    useBase64URL: false,
+    experimental: false,
+    trimXmlDeclaration: true,
+    debug: false
+  };
+  const TIMEOUT_MS = 20000;
+  const SAFE_LINK = /^(https?:\/\/|mailto:)[^\s<>"]{1,2040}$/i;
+  const HEADING = /(?:^|\s)docx_(title|heading([1-9]))(?:\s|$)/;
+  const REMOTE = /^\s*(https?:|\/\/|ftp:|file:)/i;
+
+  // Lays the document out into body. Rejects with Error('timeout' | 'empty' | <docx-preview error>).
+  function renderPages(renderAsync, data, body, styleEl, timeoutMs) {
+    let timer = null;
+    const timeout = new Promise(function (_, reject) {
+      timer = setTimeout(function () { reject(new Error('timeout')); }, timeoutMs || TIMEOUT_MS);
+    });
+    const work = Promise.resolve().then(function () { return renderAsync(data, body, styleEl, RENDER_OPTIONS); }).then(function () {
+      scrub(body);
+      const pages = body.querySelectorAll('section.docx').length;
+      if (!pages) throw new Error('empty');
+      return pages;
+    });
+    return Promise.race([work, timeout]).finally(function () { clearTimeout(timer); });
+  }
+
+  // Belt and braces next to the CSP: no script elements, no remote sources, no inline handlers.
+  function scrub(rootEl) {
+    rootEl.querySelectorAll('script, iframe, object, embed, link, meta, base, form').forEach(function (el) { el.remove(); });
+    rootEl.querySelectorAll('*').forEach(function (el) {
+      for (const attr of Array.from(el.attributes)) {
+        const n = attr.name.toLowerCase();
+        if (n.indexOf('on') === 0) el.removeAttribute(attr.name);
+        else if ((n === 'src' || n === 'srcset' || n === 'poster' || n === 'xlink:href' || (n === 'href' && el.tagName.toLowerCase() !== 'a')) && REMOTE.test(attr.value)) el.removeAttribute(attr.name);
+      }
+    });
+  }
+
+  // Headings from the rendered pages: Title and Heading 1-9 paragraphs. Each gets its own id,
+  // so two headings with the same text jump to their own place.
+  function buildOutline(rootEl) {
+    const items = [];
+    rootEl.querySelectorAll('section.docx p').forEach(function (p) {
+      const m = HEADING.exec(p.getAttribute('class') || '');
+      if (!m) return;
+      const text = (p.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!text) return;
+      const id = 'dv-h-' + items.length;
+      p.id = id;
+      items.push({ level: m[1] === 'title' ? 1 : Number(m[2]), text: text.slice(0, 200), id: id });
+    });
+    return items;
+  }
+
+  // What a click on a link in the pages does. Only http, https and mailto leave the webview.
+  function linkAction(href) {
+    if (typeof href !== 'string' || !href) return null;
+    if (href.charAt(0) === '#') return { kind: 'anchor', id: href.slice(1) };
+    if (SAFE_LINK.test(href)) return { kind: 'external', href: href };
+    return null;
+  }
+
+  // Zoom factor that makes the widest page fit the visible width (with a small margin).
+  function fitZoom(pageWidths, viewWidth) {
+    const widest = Math.max.apply(null, pageWidths.concat([1]));
+    if (!viewWidth || widest <= 1) return 1;
+    return Math.max(0.5, Math.min(3, Math.floor(((viewWidth - 48) / widest) * 100) / 100));
+  }
+
+  // ---------- webview ----------
+  function boot(win, vscode) {
+    const doc = win.document;
+    const P = win.DocxProtocol;
+    const S = win.DocxSearch;
+    const $ = function (id) { return doc.getElementById(id); };
+    const pagesRoot = $('dv-page-root');
+    const scroller = $('dv-pages');
+    const statusEl = $('dv-status');
+    const q = $('dv-q');
+    const countEl = $('dv-count');
+    const themeBtn = $('dv-theme');
+    const saved = vscode.getState() || {};
+    const state = { theme: saved.theme || doc.body.dataset.theme || 'auto', outlineOpen: saved.outlineOpen !== false, query: saved.query || '', zoom: P.clampZoom(doc.body.dataset.zoom || 1) };
+    let marks = [];
+    let current = -1;
+    let loaded = false;
+
+    function save() { vscode.setState({ theme: state.theme, outlineOpen: state.outlineOpen, query: state.query }); }
+    function applyTheme() {
+      doc.body.dataset.theme = state.theme;
+      themeBtn.textContent = 'Theme: ' + state.theme.charAt(0).toUpperCase() + state.theme.slice(1);
+    }
+    function applyOutline() {
+      $('dv-outline').hidden = !state.outlineOpen;
+      $('dv-outline-toggle').setAttribute('aria-pressed', String(state.outlineOpen));
+    }
+    function applyZoom(post) {
+      const wrapper = pagesRoot.querySelector('.docx-wrapper');
+      if (wrapper) wrapper.style.zoom = String(state.zoom);
+      $('dv-zoom-label').textContent = Math.round(state.zoom * 100) + '%';
+      if (post) vscode.postMessage({ type: 'setZoom', zoom: state.zoom });
+    }
+    function zoomBy(dir) { state.zoom = P.nextZoom(state.zoom, dir); applyZoom(true); }
+    function zoomFit() {
+      const widths = Array.from(pagesRoot.querySelectorAll('section.docx')).map(function (s) { return s.offsetWidth; });
+      state.zoom = fitZoom(widths, scroller.clientWidth);
+      applyZoom(true);
+    }
+    applyTheme();
+    applyOutline();
+    applyZoom(false);
+    q.value = state.query;
+
+    themeBtn.addEventListener('click', function () {
+      const i = P.THEMES.indexOf(state.theme);
+      state.theme = P.THEMES[(i + 1) % P.THEMES.length];
+      applyTheme();
+      save();
+      vscode.postMessage({ type: 'setTheme', theme: state.theme });
+    });
+    $('dv-outline-toggle').addEventListener('click', function () { state.outlineOpen = !state.outlineOpen; applyOutline(); save(); });
+    $('dv-zoom-in').addEventListener('click', function () { zoomBy(1); });
+    $('dv-zoom-out').addEventListener('click', function () { zoomBy(-1); });
+    $('dv-zoom-label').addEventListener('click', function () { zoomBy(0); });
+    $('dv-zoom-fit').addEventListener('click', zoomFit);
+    doc.querySelectorAll('[data-cmd]').forEach(function (b) {
+      b.addEventListener('click', function () { vscode.postMessage({ type: 'command', name: b.dataset.cmd }); });
+    });
+
+    function renderOutline(items) {
+      const list = $('dv-outline-list');
+      list.textContent = '';
+      if (!items.length) {
+        const li = doc.createElement('li');
+        li.className = 'dv-outline-empty';
+        li.textContent = 'No headings';
+        list.appendChild(li);
+        return;
+      }
+      const min = Math.min.apply(null, items.map(function (i) { return i.level; }));
+      items.forEach(function (it) {
+        const li = doc.createElement('li');
+        const a = doc.createElement('a');
+        a.href = '#' + it.id;
+        a.textContent = it.text;
+        a.title = it.text;
+        a.style.paddingLeft = (8 + (it.level - min) * 12) + 'px';
+        a.addEventListener('click', function (e) {
+          e.preventDefault();
+          const el = doc.getElementById(it.id);
+          if (el) el.scrollIntoView({ block: 'start' });
+        });
+        li.appendChild(a);
+        list.appendChild(li);
+      });
+    }
+
+    // One capturing listener: no click in the pages navigates the webview.
+    pagesRoot.addEventListener('click', function (e) {
+      const a = e.target.closest && e.target.closest('a[href]');
+      if (!a) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const act = linkAction(a.getAttribute('href'));
+      if (!act) return;
+      if (act.kind === 'anchor') {
+        const el = doc.getElementById(act.id) || doc.querySelector('[name="' + act.id.replace(/["\\]/g, '') + '"]');
+        if (el) el.scrollIntoView({ block: 'center' });
+      } else {
+        vscode.postMessage({ type: 'openLink', href: act.href });
+      }
+    }, true);
+
+    // Search
+    function runSearch() {
+      S.unhighlight(marks);
+      marks = [];
+      current = -1;
+      state.query = q.value;
+      save();
+      if (!q.value) { countEl.textContent = ''; return; }
+      marks = S.highlight(pagesRoot, q.value, 5000);
+      if (marks.length) go(0); else countEl.textContent = S.countLabel(0, 0, false);
+    }
+    function go(i) {
+      if (!marks.length) return;
+      if (current >= 0 && marks[current]) marks[current].classList.remove('dv-current');
+      current = (i + marks.length) % marks.length;
+      marks[current].classList.add('dv-current');
+      marks[current].scrollIntoView({ block: 'center' });
+      countEl.textContent = S.countLabel(current, marks.length, marks.length >= 5000);
+    }
+    let timer = null;
+    q.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(function () { if (loaded) runSearch(); }, 180); });
+    q.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); if (!marks.length) runSearch(); else go(current + (e.shiftKey ? -1 : 1)); }
+      if (e.key === 'Escape') { q.value = ''; runSearch(); scroller.focus(); }
+    });
+    $('dv-next').addEventListener('click', function () { go(current + 1); });
+    $('dv-prev').addEventListener('click', function () { go(current - 1); });
+
+    win.addEventListener('keydown', function (e) {
+      const mod = (e.ctrlKey || e.metaKey) && !e.altKey;
+      if (mod && (e.key === 'f' || e.key === 'F')) { e.preventDefault(); q.focus(); q.select(); }
+      else if (mod && (e.key === '=' || e.key === '+')) { e.preventDefault(); zoomBy(1); }
+      else if (mod && (e.key === '-' || e.key === '_')) { e.preventDefault(); zoomBy(-1); }
+      else if (mod && e.key === '0') { e.preventDefault(); zoomBy(0); }
+      else if (e.key === 'F3') { e.preventDefault(); go(current + (e.shiftKey ? -1 : 1)); }
+    });
+    // Shift + mouse wheel scrolls sideways, for wide landscape pages at high zoom.
+    scroller.addEventListener('wheel', function (e) {
+      if (e.shiftKey && !e.deltaX && e.deltaY) { scroller.scrollLeft += e.deltaY; e.preventDefault(); }
+    }, { passive: false });
+
+    win.addEventListener('message', function (event) {
+      const m = event.data;
+      if (!P.validateOutbound(m)) return;
+      if (m.type === 'theme') { state.theme = m.theme; applyTheme(); save(); return; }
+      if (m.type === 'find') { q.focus(); q.select(); return; }
+      if (m.type === 'zoom') { state.zoom = P.clampZoom(m.zoom); applyZoom(false); return; }
+      if (m.type !== 'pageData') return;
+      $('dv-name').textContent = m.meta.fileName || '';
+      if (m.theme && !saved.theme) { state.theme = m.theme; applyTheme(); }
+      loaded = false;
+      pagesRoot.textContent = '';
+      statusEl.hidden = false;
+      statusEl.textContent = 'Laying out pages...';
+      const t0 = Date.now();
+      const render = win.DocxPreview && win.DocxPreview.renderAsync;
+      if (typeof render !== 'function') { vscode.postMessage({ type: 'pageFailed', reason: 'error', ms: 0 }); return; }
+      renderPages(render, m.bytes, pagesRoot, $('dv-page-styles'), TIMEOUT_MS).then(function (pages) {
+        statusEl.hidden = true;
+        loaded = true;
+        applyZoom(false);
+        renderOutline(buildOutline(pagesRoot));
+        if (q.value) runSearch();
+        vscode.postMessage({ type: 'pageRendered', ms: Date.now() - t0, pages: pages });
+      }, function (err) {
+        pagesRoot.textContent = '';
+        const reason = err && (err.message === 'timeout' || err.message === 'empty') ? err.message : 'error';
+        vscode.postMessage({ type: 'pageFailed', reason: reason, ms: Date.now() - t0 });
+      });
+    });
+    vscode.postMessage({ type: 'ready' });
+  }
+
+  return { RENDER_OPTIONS, TIMEOUT_MS, renderPages, scrub, buildOutline, linkAction, fitZoom, boot };
+});

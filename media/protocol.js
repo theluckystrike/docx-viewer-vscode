@@ -8,8 +8,22 @@
   'use strict';
   const VERSION = 1;
   // webview -> extension
-  const COMMANDS = ['openAsText', 'copyMarkdown', 'openInDefaultApp', 'openAnyway', 'reload', 'openSettings'];
+  const COMMANDS = ['openAsText', 'copyMarkdown', 'openInDefaultApp', 'openAnyway', 'reload', 'openSettings', 'showPage', 'showReading', 'pageAnyway'];
   const THEMES = ['auto', 'light', 'dark'];
+  const VIEWS = ['reading', 'page'];
+  const PAGE_FAILURES = ['error', 'timeout', 'empty'];
+  // Zoom: 50% to 300% in 10% steps. Shared by both views.
+  const ZOOM = { min: 0.5, max: 3, step: 0.1 };
+  function clampZoom(z) {
+    const n = Number(z);
+    if (!Number.isFinite(n)) return 1;
+    return Math.round(Math.min(ZOOM.max, Math.max(ZOOM.min, n)) * 100) / 100;
+  }
+  // dir: +1, -1 or 0 (0 resets to 100%).
+  function nextZoom(z, dir) {
+    if (!dir) return 1;
+    return clampZoom(Math.round((clampZoom(z) + dir * ZOOM.step) * 10) / 10);
+  }
   const SAFE_LINK = /^(https?:\/\/|mailto:)[^\s<>"]{1,2040}$/i;
 
   function isObj(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
@@ -29,6 +43,13 @@
       case 'setTheme':
         if (THEMES.indexOf(m.theme) === -1) return { ok: false, error: 'unknown theme' };
         return { ok: true, msg: { type: 'setTheme', theme: m.theme } };
+      case 'setZoom':
+        if (typeof m.zoom !== 'number' || !Number.isFinite(m.zoom)) return { ok: false, error: 'bad zoom' };
+        return { ok: true, msg: { type: 'setZoom', zoom: clampZoom(m.zoom) } };
+      case 'pageFailed':
+        return { ok: true, msg: { type: 'pageFailed', reason: PAGE_FAILURES.indexOf(m.reason) === -1 ? 'error' : m.reason, ms: Number.isFinite(m.ms) ? Math.round(m.ms) : 0 } };
+      case 'pageRendered':
+        return { ok: true, msg: { type: 'pageRendered', ms: Number.isFinite(m.ms) ? Math.round(m.ms) : 0, pages: Number.isInteger(m.pages) ? m.pages : 0 } };
       default:
         return { ok: false, error: 'unknown type' };
     }
@@ -37,7 +58,9 @@
   // Splits a conversion result into the messages the extension posts, in order.
   function buildRenderMessages(result, meta) {
     const total = result.chunks.length;
-    const out = [{ type: 'begin', v: VERSION, meta: meta, total: total, banner: typeof result.banner === 'string' ? result.banner : '' }];
+    const banner = typeof result.banner === 'string' ? result.banner : '';
+    const bannerActions = Array.isArray(result.bannerActions) ? result.bannerActions.filter((a) => COMMANDS.indexOf(a) !== -1) : [];
+    const out = [{ type: 'begin', v: VERSION, meta: meta, total: total, banner: banner, bannerActions: bannerActions }];
     for (let i = 0; i < total; i++) out.push({ type: 'chunk', index: i, total: total, html: result.chunks[i] });
     out.push({ type: 'end', outline: result.outline, warnings: result.warnings, stats: result.stats });
     return out;
@@ -51,7 +74,9 @@
   function validateOutbound(m) {
     if (!isObj(m)) return false;
     switch (m.type) {
-      case 'begin': return isObj(m.meta) && Number.isInteger(m.total) && m.total >= 1 && (m.banner === undefined || typeof m.banner === 'string');
+      case 'begin': return isObj(m.meta) && Number.isInteger(m.total) && m.total >= 1 && (m.banner === undefined || typeof m.banner === 'string') && (m.bannerActions === undefined || (Array.isArray(m.bannerActions) && m.bannerActions.every((a) => COMMANDS.indexOf(a) !== -1)));
+      case 'pageData': return isObj(m.meta) && (m.bytes instanceof Uint8Array || m.bytes instanceof ArrayBuffer) && THEMES.indexOf(m.theme) !== -1;
+      case 'zoom': return typeof m.zoom === 'number';
       case 'chunk': return Number.isInteger(m.index) && m.index >= 0 && m.index < m.total && typeof m.html === 'string';
       case 'end': return Array.isArray(m.outline) && Array.isArray(m.warnings) && isObj(m.stats);
       case 'notice': return typeof m.title === 'string' && typeof m.detail === 'string' && Array.isArray(m.actions);
@@ -61,5 +86,5 @@
     }
   }
 
-  return { VERSION, COMMANDS, THEMES, validateInbound, validateOutbound, buildRenderMessages, buildNotice };
+  return { VERSION, COMMANDS, THEMES, VIEWS, ZOOM, clampZoom, nextZoom, validateInbound, validateOutbound, buildRenderMessages, buildNotice };
 });

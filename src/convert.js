@@ -122,6 +122,7 @@ async function convertLegacyDoc(buffer, opts, t0) {
   const { html } = LegacyDoc.docToHtml(d);
   const r = finish(html, [], opts, t0, 'doc');
   r.banner = LegacyDoc.BANNER;
+  r.bannerActions = ['openInDefaultApp'];
   return r;
 }
 

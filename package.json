@@ -256,6 +256,32 @@
           "default": "auto",
           "description": "Page colors for the document."
         },
+        "docxViewer.defaultView": {
+          "type": "string",
+          "enum": [
+            "reading",
+            "page"
+          ],
+          "enumDescriptions": [
+            "Text in one column that follows the window width, with dark mode and an outline",
+            "Pages the way Word lays them out, with headers, footers, page size and fonts (.docx, .dotx and .docm)"
+          ],
+          "default": "reading",
+          "description": "The view a Word file opens in. The Page view and Reading view buttons switch it for this workspace."
+        },
+        "docxViewer.zoom": {
+          "type": "number",
+          "default": 1,
+          "minimum": 0.5,
+          "maximum": 3,
+          "description": "Zoom for both views, from 0.5 (50%) to 3 (300%). Ctrl+= and Ctrl+- (Cmd on macOS) change it in the viewer."
+        },
+        "docxViewer.pageViewMaxMB": {
+          "type": "number",
+          "default": 20,
+          "minimum": 1,
+          "description": "Files larger than this open in Reading view, with a button to try Page view anyway. Page view needs more memory for big files."
+        },
         "docxViewer.maxFileSizeMB": {
           "type": "number",
           "default": 50,
@@ -346,7 +372,8 @@
     "word-extractor": "^1.0.4"
   },
   "devDependencies": {
-    "esbuild": "^0.24.2"
+    "esbuild": "^0.24.2",
+    "jsdom": "^24.1.3"
   },
   "sponsor": {
     "url": "https://github.com/sponsors/theluckystrike"

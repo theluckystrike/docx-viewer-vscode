@@ -123,7 +123,7 @@
     p.textContent = m.detail;
     statusEl.appendChild(h);
     statusEl.appendChild(p);
-    const labels = { openInDefaultApp: 'Open in default app', openAnyway: 'Open anyway', reload: 'Try again', openSettings: 'Change the limit' };
+    const labels = LABELS;
     const row = document.createElement('div');
     row.className = 'dv-actions';
     m.actions.forEach(function (name) {
@@ -137,6 +137,37 @@
     statusEl.appendChild(row);
     outlineList.textContent = '';
   }
+
+  // Grey note above the document (old .doc files, Page view fallbacks) with its buttons.
+  const LABELS = { openInDefaultApp: 'Open in default app', openAnyway: 'Open anyway', reload: 'Try again', openSettings: 'Change the limit', pageAnyway: 'Open in Page view anyway', showPage: 'Page view' };
+  function actionButton(name) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'dv-btn';
+    b.textContent = LABELS[name] || name;
+    b.addEventListener('click', function () { vscode.postMessage({ type: 'command', name: name }); });
+    return b;
+  }
+  function renderBanner(text, actions) {
+    $('dv-banner-text').textContent = text;
+    const box = $('dv-banner-actions');
+    box.textContent = '';
+    actions.forEach(function (a) { box.appendChild(actionButton(a)); });
+    $('dv-banner').hidden = false;
+  }
+
+  // ---------- zoom (CSS zoom keeps text selectable) ----------
+  state.zoom = P.clampZoom(document.body.dataset.zoom || 1);
+  function applyZoom(post) {
+    doc.style.zoom = String(state.zoom);
+    $('dv-zoom-label').textContent = Math.round(state.zoom * 100) + '%';
+    if (post) vscode.postMessage({ type: 'setZoom', zoom: state.zoom });
+  }
+  function zoomBy(dir) { state.zoom = P.nextZoom(state.zoom, dir); applyZoom(true); }
+  $('dv-zoom-in').addEventListener('click', function () { zoomBy(1); });
+  $('dv-zoom-out').addEventListener('click', function () { zoomBy(-1); });
+  $('dv-zoom-label').addEventListener('click', function () { zoomBy(0); });
+  applyZoom(false);
 
   // ---------- links ----------
   doc.addEventListener('click', function (e) {
@@ -219,7 +250,11 @@
   $('dv-prev').addEventListener('click', function () { go(current - 1); });
   function focusSearch() { q.focus(); q.select(); }
   window.addEventListener('keydown', function (e) {
-    if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'f' || e.key === 'F')) { e.preventDefault(); focusSearch(); }
+    const mod = (e.ctrlKey || e.metaKey) && !e.altKey;
+    if (mod && (e.key === 'f' || e.key === 'F')) { e.preventDefault(); focusSearch(); }
+    if (mod && (e.key === '=' || e.key === '+')) { e.preventDefault(); zoomBy(1); }
+    if (mod && (e.key === '-' || e.key === '_')) { e.preventDefault(); zoomBy(-1); }
+    if (mod && e.key === '0') { e.preventDefault(); zoomBy(0); }
     if (e.key === 'F3') { e.preventDefault(); go(current + (e.shiftKey ? -1 : 1)); }
   });
 
@@ -237,7 +272,7 @@
       case 'loading': resetView(m.meta); break;
       case 'begin':
         resetView(m.meta);
-        if (m.banner) { $('dv-banner-text').textContent = m.banner; $('dv-banner').hidden = false; }
+        if (m.banner) renderBanner(m.banner, m.bannerActions || []);
         break;
       case 'chunk': appendChunk(m.html); break;
       case 'end':
@@ -250,6 +285,7 @@
         break;
       case 'notice': renderNotice(m); break;
       case 'theme': state.theme = m.theme; applyTheme(); save(); break;
+      case 'zoom': state.zoom = P.clampZoom(m.zoom); applyZoom(false); break;
       case 'find': focusSearch(); break;
     }
   });

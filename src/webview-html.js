@@ -38,7 +38,7 @@ function buildWebviewHtml(opts) {
 ${footer ? `<style nonce="${n}">${FOOTER_CSS}</style>` : ''}
 <title>DOCX Viewer</title>
 </head>
-<body data-theme="${escapeAttr(opts.theme || 'auto')}">
+<body data-theme="${escapeAttr(opts.theme || 'auto')}" data-zoom="${zoomAttr(opts.zoom)}">
 <header class="dv-bar" role="toolbar" aria-label="Document toolbar">
   <button type="button" id="dv-outline-toggle" class="dv-btn" title="Show or hide the outline" aria-pressed="true">Outline</button>
   <span id="dv-name" class="dv-name"></span>
@@ -49,14 +49,16 @@ ${footer ? `<style nonce="${n}">${FOOTER_CSS}</style>` : ''}
     <button type="button" id="dv-prev" class="dv-btn dv-icon" title="Previous match (Shift+Enter)" aria-label="Previous match">&#8593;</button>
     <button type="button" id="dv-next" class="dv-btn dv-icon" title="Next match (Enter)" aria-label="Next match">&#8595;</button>
   </span>
+ ${zoomControls(false)}
   <button type="button" id="dv-theme" class="dv-btn" title="Page theme: follow VS Code, light paper or dark">Theme: Auto</button>
+  ${opts.pageAvailable ? '<button type="button" id="dv-view" class="dv-btn" data-cmd="showPage" title="Show the pages the way Word lays them out">Page view</button>' : ''}
   <button type="button" class="dv-btn" data-cmd="copyMarkdown" title="Copy the whole document as Markdown">Copy Markdown</button>
   <button type="button" class="dv-btn" data-cmd="openAsText" title="Open the plain text in a new editor">Open as Text</button>
 </header>
 <div class="dv-main">
   <nav id="dv-outline" class="dv-outline" aria-label="Outline"><div class="dv-outline-title">Outline</div><ol id="dv-outline-list"></ol></nav>
   <main id="dv-scroll" class="dv-scroll" tabindex="-1">
-    <div id="dv-banner" class="dv-banner" role="note" hidden><span id="dv-banner-text"></span><button type="button" class="dv-btn" data-cmd="openInDefaultApp">Open in Default App</button></div>
+    <div id="dv-banner" class="dv-banner" role="note" hidden><span id="dv-banner-text"></span><span id="dv-banner-actions" class="dv-banner-actions"></span></div>
     <div id="dv-status" class="dv-status">Opening document...</div>
     <article id="dv-doc" class="dv-page" hidden></article>
     <details id="dv-warnings" class="dv-warnings" hidden><summary></summary><ul></ul></details>
@@ -70,4 +72,85 @@ ${footer}
 </html>`;
 }
 
-module.exports = { buildWebviewHtml, nonce };
+function zoomAttr(z) {
+  const n = Number(z);
+  return String(Number.isFinite(n) && n >= 0.5 && n <= 3 ? n : 1);
+}
+
+function zoomControls(withFit) {
+  return '<span class="dv-zoom" role="group" aria-label="Zoom">' +
+    '<button type="button" id="dv-zoom-out" class="dv-btn dv-icon" title="Zoom out (Ctrl+-)" aria-label="Zoom out">&#8722;</button>' +
+    '<button type="button" id="dv-zoom-label" class="dv-btn" title="Reset zoom to 100% (Ctrl+0)">100%</button>' +
+    '<button type="button" id="dv-zoom-in" class="dv-btn dv-icon" title="Zoom in (Ctrl+=)" aria-label="Zoom in">+</button>' +
+    (withFit ? '<button type="button" id="dv-zoom-fit" class="dv-btn" title="Fit the widest page to the window">Fit width</button>' : '') +
+    '</span>';
+}
+
+// CSP for Page view. docx-preview writes <style> elements and style="" attributes, so styles need
+// 'unsafe-inline' (and so no style nonce, which would switch 'unsafe-inline' off). Images and
+// embedded fonts arrive as blob: URLs made from the file. No script from the document can run and
+// no request can leave the webview.
+function pageCsp(cspSource, n) {
+  return [
+    "default-src 'none'",
+    'img-src blob: data: ' + cspSource,
+    'style-src ' + cspSource + " 'unsafe-inline'",
+    'font-src blob: data: ' + cspSource,
+    "script-src 'nonce-" + n + "'",
+    "connect-src 'none'",
+    "frame-src 'none'",
+    "form-action 'none'",
+    "base-uri 'none'"
+  ].join('; ');
+}
+
+// Page view shell. The file bytes arrive later through postMessage; docx-preview lays them out.
+// uris: { css, protocol, search, pageView, page }.
+function buildPageHtml(opts) {
+  const n = opts.nonce || nonce();
+  const footer = footerHtml('docxViewer', opts.showSupportLinks !== false, 'zovo-support-fixed');
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="${escapeAttr(pageCsp(opts.cspSource, n))}">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="${escapeAttr(opts.uris.css)}">
+${footer ? `<style>${FOOTER_CSS}</style>` : ''}
+<title>DOCX Viewer</title>
+</head>
+<body class="dv-pageview" data-theme="${escapeAttr(opts.theme || 'auto')}" data-zoom="${zoomAttr(opts.zoom)}">
+<header class="dv-bar" role="toolbar" aria-label="Document toolbar">
+  <button type="button" id="dv-outline-toggle" class="dv-btn" title="Show or hide the outline" aria-pressed="true">Outline</button>
+  <span id="dv-name" class="dv-name"></span>
+  <span class="dv-spacer"></span>
+  <span class="dv-search">
+    <input id="dv-q" type="search" placeholder="Search" aria-label="Search in document" spellcheck="false" autocomplete="off">
+    <span id="dv-count" class="dv-count" aria-live="polite"></span>
+    <button type="button" id="dv-prev" class="dv-btn dv-icon" title="Previous match (Shift+Enter)" aria-label="Previous match">&#8593;</button>
+    <button type="button" id="dv-next" class="dv-btn dv-icon" title="Next match (Enter)" aria-label="Next match">&#8595;</button>
+  </span>
+  ${zoomControls(true)}
+  <button type="button" id="dv-theme" class="dv-btn" title="Page theme: follow VS Code, light paper or dark">Theme: Auto</button>
+  <button type="button" id="dv-view" class="dv-btn" data-cmd="showReading" title="Show the text as one flowing column">Reading view</button>
+  <button type="button" class="dv-btn" data-cmd="copyMarkdown" title="Copy the whole document as Markdown">Copy Markdown</button>
+  <button type="button" class="dv-btn" data-cmd="openAsText" title="Open the plain text in a new editor">Open as Text</button>
+</header>
+<div class="dv-main">
+  <nav id="dv-outline" class="dv-outline" aria-label="Outline"><div class="dv-outline-title">Outline</div><ol id="dv-outline-list"></ol></nav>
+  <main id="dv-pages" class="dv-scroll dv-pages" tabindex="-1">
+    <div id="dv-status" class="dv-status">Laying out pages...</div>
+    <div id="dv-page-styles" hidden></div>
+    <div id="dv-page-root" class="dv-page-root"></div>
+  </main>
+</div>
+${footer}
+<script nonce="${n}" src="${escapeAttr(opts.uris.protocol)}"></script>
+<script nonce="${n}" src="${escapeAttr(opts.uris.search)}"></script>
+<script nonce="${n}" src="${escapeAttr(opts.uris.pageView)}"></script>
+<script nonce="${n}" src="${escapeAttr(opts.uris.page)}"></script>
+</body>
+</html>`;
+}
+
+module.exports = { buildWebviewHtml, buildPageHtml, pageCsp, nonce };

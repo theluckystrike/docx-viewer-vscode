@@ -31,5 +31,42 @@
     if (!total) return 'No results';
     return (current + 1) + ' of ' + total + (capped ? '+' : '');
   }
-  return { findMatches, countLabel, escapeRegExp };
+  // Wraps every match under root in <mark class="dv-hit">. Returns the marks in document order.
+  function highlight(root, query, max) {
+    const doc = root.ownerDocument;
+    const marks = [];
+    if (!query) return marks;
+    const walker = doc.createTreeWalker(root, 4 /* NodeFilter.SHOW_TEXT */);
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    for (let i = 0; i < nodes.length && marks.length < max; i++) {
+      const node = nodes[i];
+      const found = findMatches(node.nodeValue, query, { max: max - marks.length });
+      if (!found.length) continue;
+      const frag = doc.createDocumentFragment();
+      const text = node.nodeValue;
+      let pos = 0;
+      found.forEach(function (r) {
+        if (r[0] > pos) frag.appendChild(doc.createTextNode(text.slice(pos, r[0])));
+        const mark = doc.createElement('mark');
+        mark.className = 'dv-hit';
+        mark.textContent = text.slice(r[0], r[1]);
+        frag.appendChild(mark);
+        marks.push(mark);
+        pos = r[1];
+      });
+      if (pos < text.length) frag.appendChild(doc.createTextNode(text.slice(pos)));
+      node.parentNode.replaceChild(frag, node);
+    }
+    return marks;
+  }
+  function unhighlight(marks) {
+    marks.forEach(function (m) {
+      const parent = m.parentNode;
+      if (!parent) return;
+      parent.replaceChild(m.ownerDocument.createTextNode(m.textContent), m);
+      parent.normalize();
+    });
+  }
+  return { findMatches, countLabel, escapeRegExp, highlight, unhighlight };
 });

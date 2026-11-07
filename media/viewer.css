@@ -147,3 +147,26 @@ mark.dv-current { background: var(--dv-current); outline: 1px solid var(--vscode
 /* Grey note above old .doc files (text only). */
 .dv-banner { display: flex; align-items: center; gap: 12px; max-width: 860px; margin: 16px auto 0; padding: 8px 12px; border-radius: 4px; background: var(--vscode-editorWidget-background, #f3f3f3); color: var(--vscode-foreground, #333); border: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.35)); font-size: 13px; }
 .dv-banner span { flex: 1; }
+#dv-banner-actions { display: flex; gap: 6px; }
+.dv-zoom { display: inline-flex; align-items: center; gap: 2px; }
+#dv-zoom-label { min-width: 48px; }
+
+/* ---------- Page view (docx-preview) ---------- */
+.dv-pages { overflow: auto; padding: 0; }
+.dv-pages .docx-wrapper { background: transparent; padding: 24px 16px 48px; display: flex; flex-flow: column; align-items: center; }
+.dv-pages .docx-wrapper > section.docx { box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35); margin-bottom: 24px; color: #000; }
+/* Dark pages: invert the paper, then invert pictures back so photos and charts keep their colors. */
+body[data-theme="dark"] .dv-pages section.docx,
+body.vscode-dark[data-theme="auto"] .dv-pages section.docx,
+body.vscode-high-contrast:not(.vscode-high-contrast-light)[data-theme="auto"] .dv-pages section.docx { filter: invert(1) hue-rotate(180deg); }
+body[data-theme="dark"] .dv-pages section.docx img,
+body[data-theme="dark"] .dv-pages section.docx svg,
+body[data-theme="dark"] .dv-pages section.docx [style*="background-image"],
+body.vscode-dark[data-theme="auto"] .dv-pages section.docx img,
+body.vscode-dark[data-theme="auto"] .dv-pages section.docx svg,
+body.vscode-dark[data-theme="auto"] .dv-pages section.docx [style*="background-image"],
+body.vscode-high-contrast:not(.vscode-high-contrast-light)[data-theme="auto"] .dv-pages section.docx img,
+body.vscode-high-contrast:not(.vscode-high-contrast-light)[data-theme="auto"] .dv-pages section.docx svg,
+body.vscode-high-contrast:not(.vscode-high-contrast-light)[data-theme="auto"] .dv-pages section.docx [style*="background-image"] { filter: invert(1) hue-rotate(180deg); }
+.dv-pages mark.dv-hit { background: #ffd33d; color: #000; }
+.dv-pages mark.dv-hit.dv-current { background: #ff9632; outline: 2px solid #c25e00; }
