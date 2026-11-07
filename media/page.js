@@ -131,7 +131,10 @@
     }
     function zoomBy(dir) { state.zoom = P.nextZoom(state.zoom, dir); applyZoom(true); }
     function zoomFit() {
-      const widths = Array.from(pagesRoot.querySelectorAll('section.docx')).map(function (s) { return s.offsetWidth; });
+      // Measure at 100% so the result does not depend on the zoom in use now.
+      const wrapper = pagesRoot.querySelector('.docx-wrapper');
+      if (wrapper) wrapper.style.zoom = '1';
+      const widths = Array.from(pagesRoot.querySelectorAll('section.docx')).map(function (s) { return s.getBoundingClientRect().width; });
       state.zoom = fitZoom(widths, scroller.clientWidth);
       applyZoom(true);
     }

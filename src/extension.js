@@ -207,7 +207,11 @@ class DocxEditorProvider {
       return this.switchView(panel, document, 'reading', false);
     }
     if (!this.panels.has(panel)) return;
-    return panel.webview.postMessage({ type: 'pageData', v: P.VERSION, meta: this.meta(document, size), theme: c.theme, zoom: this.zoom(), bytes });
+    // A plain Uint8Array over its own ArrayBuffer: VS Code sends that to the webview as binary.
+    // A Node Buffer (what readFile can return) arrives as a plain object instead.
+    const copy = new Uint8Array(bytes.byteLength);
+    copy.set(bytes);
+    return panel.webview.postMessage({ type: 'pageData', v: P.VERSION, meta: this.meta(document, size), theme: c.theme, zoom: this.zoom(), bytes: copy });
   }
 
   async render(panel, document) {

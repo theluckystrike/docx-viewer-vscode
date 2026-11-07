@@ -26,7 +26,7 @@ const vscodeStub = {
     getConfiguration: () => ({ get: (k, d) => (k in settings ? settings[k] : d) }),
     fs: {
       stat: async (u) => ({ size: fs.statSync(u.fsPath).size }),
-      readFile: async (u) => new Uint8Array(fs.readFileSync(u.fsPath))
+      readFile: async (u) => fs.readFileSync(u.fsPath) // a Node Buffer, like the real API often returns
     },
     createFileSystemWatcher: () => ({ onDidChange: () => ({ dispose() {} }), onDidCreate: () => ({ dispose() {} }), dispose() {} }),
     openTextDocument: async (o) => { calls.textDocs.push(o); return o; },
@@ -253,6 +253,7 @@ test('Page view: the switch is offered for .docx only, swaps the CSP and sends t
     assert.strictEqual(panel.posted.length, 1);
     assert.strictEqual(panel.posted[0].type, 'pageData');
     assert.ok(panel.posted[0].bytes instanceof Uint8Array);
+    assert.ok(!Buffer.isBuffer(panel.posted[0].bytes), 'a Node Buffer reaches the webview as a plain object');
     assert.strictEqual(panel.posted[0].bytes.length, fs.statSync(doc.uri.fsPath).size);
     // A new panel in the same workspace opens in Page view.
     const again = await open('sample.docx');
