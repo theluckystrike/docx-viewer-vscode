@@ -120,11 +120,31 @@ test('convertBytes converts committed bytes and gives a notice for non-ZIP bytes
   assert.strictEqual(bad.notice.kind, 'notDocx');
 });
 
-test('.doc file shows the old-format notice with an open-in-app action', async () => {
+test('a broken .doc shows the could-not-read notice with Try again and Open in default app', async () => {
   const { panel } = await open('legacy.doc');
   assert.strictEqual(panel.posted.length, 1);
   assert.strictEqual(panel.posted[0].type, 'notice');
-  assert.strictEqual(panel.posted[0].kind, 'legacyDoc');
+  assert.strictEqual(panel.posted[0].kind, 'error');
+  assert.match(panel.posted[0].title, /could not read this \.doc file/);
+  assert.deepStrictEqual(panel.posted[0].actions, ['reload', 'openInDefaultApp']);
+});
+
+test('a Word 97-2003 .doc renders its text with the text-only banner', async () => {
+  const { panel } = await open('simple.doc');
+  const types = panel.posted.map((m) => m.type);
+  assert.strictEqual(types[0], 'begin');
+  assert.strictEqual(types[types.length - 1], 'end');
+  assert.match(panel.posted[0].banner, /^Old Word 97-2003 file\. Text only/);
+  assert.match(panel.posted.filter((m) => m.type === 'chunk').map((m) => m.html).join(''), /<td>alpha<\/td><td>1<\/td>/);
+  assert.match(panel.webview.html, /id="dv-banner"[^>]*hidden/);
+  const sample = await open('sample.docx');
+  assert.strictEqual(sample.panel.posted[0].banner, '', 'no banner for .docx');
+});
+
+test('RTF saved as .doc gets its own notice with Open in default app only', async () => {
+  const { panel } = await open('rtf-as.doc');
+  assert.strictEqual(panel.posted[0].type, 'notice');
+  assert.strictEqual(panel.posted[0].title, 'This .doc file is really an RTF file');
   assert.deepStrictEqual(panel.posted[0].actions, ['openInDefaultApp']);
 });
 

@@ -7,7 +7,7 @@ const path = require('path');
 const { execFile } = require('child_process');
 
 const SCHEME = 'docx-viewer-diff';
-const DOC_EXT = /\.(docx|dotx|docm|odt|ott)$/i;
+const DOC_EXT = /\.(docx|dotx|docm|odt|ott|doc|dot)$/i;
 
 // Keeps the Markdown for the diff editor. Bounded, so long sessions do not grow forever.
 class DiffStore {

@@ -37,7 +37,7 @@
   // Splits a conversion result into the messages the extension posts, in order.
   function buildRenderMessages(result, meta) {
     const total = result.chunks.length;
-    const out = [{ type: 'begin', v: VERSION, meta: meta, total: total }];
+    const out = [{ type: 'begin', v: VERSION, meta: meta, total: total, banner: typeof result.banner === 'string' ? result.banner : '' }];
     for (let i = 0; i < total; i++) out.push({ type: 'chunk', index: i, total: total, html: result.chunks[i] });
     out.push({ type: 'end', outline: result.outline, warnings: result.warnings, stats: result.stats });
     return out;
@@ -51,7 +51,7 @@
   function validateOutbound(m) {
     if (!isObj(m)) return false;
     switch (m.type) {
-      case 'begin': return isObj(m.meta) && Number.isInteger(m.total) && m.total >= 1;
+      case 'begin': return isObj(m.meta) && Number.isInteger(m.total) && m.total >= 1 && (m.banner === undefined || typeof m.banner === 'string');
       case 'chunk': return Number.isInteger(m.index) && m.index >= 0 && m.index < m.total && typeof m.html === 'string';
       case 'end': return Array.isArray(m.outline) && Array.isArray(m.warnings) && isObj(m.stats);
       case 'notice': return typeof m.title === 'string' && typeof m.detail === 'string' && Array.isArray(m.actions);

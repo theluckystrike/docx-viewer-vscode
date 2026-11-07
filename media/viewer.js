@@ -57,6 +57,7 @@
     doc.textContent = '';
     outlineList.textContent = '';
     $('dv-warnings').hidden = true;
+    $('dv-banner').hidden = true;
     statusEl.hidden = false;
     statusEl.className = 'dv-status';
     statusEl.textContent = 'Opening document...';
@@ -234,7 +235,10 @@
     if (!P.validateOutbound(m)) return;
     switch (m.type) {
       case 'loading': resetView(m.meta); break;
-      case 'begin': resetView(m.meta); break;
+      case 'begin':
+        resetView(m.meta);
+        if (m.banner) { $('dv-banner-text').textContent = m.banner; $('dv-banner').hidden = false; }
+        break;
       case 'chunk': appendChunk(m.html); break;
       case 'end':
         loaded = true;

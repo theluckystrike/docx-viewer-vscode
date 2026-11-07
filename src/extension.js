@@ -2,7 +2,7 @@
 const vscode = require('vscode');
 const path = require('path');
 const { convertInWorker } = require('./run-worker');
-const { noticeFor, detectFormat } = require('./detect');
+const { noticeFor, detectFormat, canConvert } = require('./detect');
 const { buildWebviewHtml } = require('./webview-html');
 const P = require('../media/protocol');
 const { createRatingPrompt } = require('./rate');
@@ -122,7 +122,7 @@ class DocxEditorProvider {
       }
       const bytes = await vscode.workspace.fs.readFile(document.uri);
       const format = detectFormat(bytes);
-      if (format !== 'zip') return { ok: false, size, notice: noticeFor(format, ext) };
+      if (!canConvert(format, ext)) return { ok: false, size, notice: noticeFor(format, ext) };
       const r = await convertInWorker(bytes, { ext, maxImageBytes: c.maxImageBytes, maxTotalImageBytes: c.maxTotalImageBytes });
       r.size = size;
       return r;
@@ -170,7 +170,7 @@ async function convertBytes(bytes, name) {
   const c = cfg();
   const ext = path.extname(name).toLowerCase();
   const format = detectFormat(bytes);
-  if (format !== 'zip') return { ok: false, notice: noticeFor(format, ext) || { kind: 'error', title: 'Unknown format', detail: '' } };
+  if (!canConvert(format, ext)) return { ok: false, notice: noticeFor(format, ext) || { kind: 'error', title: 'Unknown format', detail: '' } };
   return convertInWorker(bytes, { ext, maxImageBytes: c.maxImageBytes, maxTotalImageBytes: c.maxTotalImageBytes });
 }
 

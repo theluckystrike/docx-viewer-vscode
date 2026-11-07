@@ -6,7 +6,8 @@ const mammoth = require('mammoth');
 const JSZip = require('jszip');
 const { convertOdt, odfKind } = require('./odt');
 const H = require('./html');
-const { detectFormat, noticeFor } = require('./detect');
+const { detectFormat, noticeFor, isLegacyExt, ENCRYPTED_DOC } = require('./detect');
+const LegacyDoc = require('./doc');
 
 const DEFAULTS = {
   maxImageBytes: 5 * 1024 * 1024,
@@ -57,6 +58,7 @@ async function convertDocx(buf, options) {
   const t0 = Date.now();
   const buffer = Buffer.isBuffer(buf) ? buf : Buffer.from(buf.buffer || buf, buf.byteOffset || 0, buf.byteLength);
   const format = detectFormat(buffer);
+  if (format === 'ole' && isLegacyExt(opts.ext || '')) return convertLegacyDoc(buffer, opts, t0);
   if (format !== 'zip') return { ok: false, notice: noticeFor(format, opts.ext || '') };
   // OpenDocument packages are ZIP files too. Their first entry is an uncompressed "mimetype" file,
   // so a .docx skips the extra ZIP read. .odt/.ott files are always checked in full.
@@ -107,7 +109,23 @@ async function convertDocx(buf, options) {
   return finish(result.value, warnings, opts, t0, 'docx');
 }
 
-// Shared by .docx and .odt: sanitize the converter HTML and derive chunks, outline, Markdown and text.
+// Word 97-2003 .doc/.dot: text, simple tables and the side parts (headers, notes, comments, text boxes).
+// Every failure becomes a notice with "Open in default app", never an empty page.
+async function convertLegacyDoc(buffer, opts, t0) {
+  let d;
+  try {
+    d = await LegacyDoc.extractDoc(buffer);
+  } catch (err) {
+    if (err && err.code === 'DV_ENCRYPTED') return { ok: false, notice: ENCRYPTED_DOC };
+    return { ok: false, notice: { kind: 'error', title: 'DOCX Viewer could not read this ' + (opts.ext || '.doc') + ' file', detail: 'The Word 97-2003 file may be damaged or saved by a tool DOCX Viewer does not know. Details: ' + String((err && err.message) || err).slice(0, 300) } };
+  }
+  const { html } = LegacyDoc.docToHtml(d);
+  const r = finish(html, [], opts, t0, 'doc');
+  r.banner = LegacyDoc.BANNER;
+  return r;
+}
+
+// Shared by .docx, .odt and .doc: sanitize the converter HTML and derive chunks, outline, Markdown and text.
 function finish(rawHtml, warnings, opts, t0, format) {
   const clean = H.sanitize(H.parse(rawHtml));
   const chunks = H.chunkBlocks(clean.tree, opts.maxChunkChars);

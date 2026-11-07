@@ -143,3 +143,7 @@ mark.dv-current { background: var(--dv-current); outline: 1px solid var(--vscode
   .dv-bar, .dv-outline, .dv-warnings { display: none; }
   .dv-page { box-shadow: none; border: 0; }
 }
+
+/* Grey note above old .doc files (text only). */
+.dv-banner { display: flex; align-items: center; gap: 12px; max-width: 860px; margin: 16px auto 0; padding: 8px 12px; border-radius: 4px; background: var(--vscode-editorWidget-background, #f3f3f3); color: var(--vscode-foreground, #333); border: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.35)); font-size: 13px; }
+.dv-banner span { flex: 1; }

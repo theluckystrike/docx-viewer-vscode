@@ -56,6 +56,7 @@ ${footer ? `<style nonce="${n}">${FOOTER_CSS}</style>` : ''}
 <div class="dv-main">
   <nav id="dv-outline" class="dv-outline" aria-label="Outline"><div class="dv-outline-title">Outline</div><ol id="dv-outline-list"></ol></nav>
   <main id="dv-scroll" class="dv-scroll" tabindex="-1">
+    <div id="dv-banner" class="dv-banner" role="note" hidden><span id="dv-banner-text"></span><button type="button" class="dv-btn" data-cmd="openInDefaultApp">Open in Default App</button></div>
     <div id="dv-status" class="dv-status">Opening document...</div>
     <article id="dv-doc" class="dv-page" hidden></article>
     <details id="dv-warnings" class="dv-warnings" hidden><summary></summary><ul></ul></details>

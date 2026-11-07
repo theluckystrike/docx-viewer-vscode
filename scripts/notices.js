@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const root = path.join(__dirname, '..');
-const pkgs = ['mammoth', '@xmldom/xmldom', 'base64-js', 'core-util-is', 'dingbat-to-unicode', 'immediate', 'inherits', 'isarray', 'jszip', 'lie', 'lop', 'option', 'pako', 'process-nextick-args', 'readable-stream', 'safe-buffer', 'setimmediate', 'string_decoder', 'underscore', 'util-deprecate', 'xmlbuilder'];
+const pkgs = ['mammoth', '@xmldom/xmldom', 'base64-js', 'core-util-is', 'dingbat-to-unicode', 'immediate', 'inherits', 'isarray', 'jszip', 'lie', 'lop', 'option', 'pako', 'process-nextick-args', 'readable-stream', 'safe-buffer', 'setimmediate', 'string_decoder', 'underscore', 'util-deprecate', 'word-extractor', 'xmlbuilder'];
 let out = '# Third-party notices\n\nDOCX Viewer bundles the following packages in `out/worker.js`.\n';
 for (const name of pkgs) {
   const dir = path.join(root, 'node_modules', name);
