@@ -9,7 +9,7 @@ const { createRatingPrompt } = require('./rate');
 const { registerSupport, commandUris, showLinks } = require('./support');
 const { registerCompare } = require('./compare');
 
-let rating = { success() {} };
+let rating = { success() {}, failure() {} };
 const counted = new WeakSet(); // panels already counted for the rating prompt
 
 const VIEW_TYPE = 'docxViewer.preview';
@@ -150,9 +150,14 @@ class DocxEditorProvider {
       for (const p of this.panels.keys()) if (p !== panel) p.webview.postMessage({ type: 'zoom', zoom: m.zoom });
       return;
     }
-    if (m.type === 'pageRendered') { this.lastPageRender = m; return; }
+    if (m.type === 'pageRendered') {
+      this.lastPageRender = m;
+      if (!counted.has(panel)) { counted.add(panel); rating.success(); }
+      return;
+    }
     if (m.type === 'setToolbar') return this.setToolbar(m.hidden, panel);
     if (m.type === 'pageFailed') {
+      rating.failure();
       this.notes.set(panel, { text: NOTES.failed, actions: [] });
       return this.switchView(panel, document, 'reading', false);
     }
@@ -280,6 +285,7 @@ class DocxEditorProvider {
     if (!this.panels.has(panel)) return;
     const meta = this.meta(document, r.size);
     if (!r.ok) {
+      if (!r.tooLarge) rating.failure(); // any file that did not open: no rating ask after it
       const actions = r.tooLarge ? ['openAnyway', 'openInDefaultApp', 'openSettings'] : r.notice.kind === 'error' ? ['reload', 'openInDefaultApp'] : ['openInDefaultApp'];
       return post(P.buildNotice(r.notice, meta, actions));
     }
@@ -358,7 +364,7 @@ async function copyMarkdown(uri, provider) {
 }
 
 function activate(context) {
-  rating = createRatingPrompt({ vscode, context, extensionId: 'zovo.docx-viewer-vscode', section: 'docxViewer', message: (n) => `DOCX Viewer has opened ${n} files for you. A rating helps other people find it.` });
+  rating = createRatingPrompt({ vscode, context, extensionId: 'zovo.docx-viewer-vscode', section: 'docxViewer', name: 'DOCX Viewer' });
   registerSupport({ vscode, context, prefix: 'docxViewer', selfId: 'zovo.docx-viewer-vscode' });
   const provider = new DocxEditorProvider(context);
   registerCompare({

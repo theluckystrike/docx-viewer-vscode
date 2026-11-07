@@ -15,7 +15,7 @@ Fixes found by opening 140 real-world files (Apache POI bug reports, a 47 MB JNC
 - The "conversion notes" list no longer shows Word style names that have no special HTML. Real files had 5 to 10 of these each.
 - New: hide the toolbar for more reading room with the button at its right end or `Ctrl+Shift+H` (`Cmd+Shift+H`), and bring it back the same way. The choice is kept per workspace.
 - New setting `docxViewer.fontFamily` for Reading view: empty (Word-like default), `editor` or a font list.
-- The one-time rating question now comes after 3 files that opened without an error and 1 day. It still asks once, and `docxViewer.askForRating: false` turns it off.
+- The rating question now comes after 3 files that opened without an error on 2 different days, and never after an error. "Later" asks one more time after 7 days, "No thanks" ends it, and it never asks more than 2 times. `docxViewer.askForRating: false` turns it off.
 
 ## 0.2.5 (2026-11-07)
 
