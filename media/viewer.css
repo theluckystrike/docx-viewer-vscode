@@ -171,3 +171,19 @@ body.vscode-high-contrast:not(.vscode-high-contrast-light)[data-theme="auto"] .d
 body.vscode-high-contrast:not(.vscode-high-contrast-light)[data-theme="auto"] .dv-pages section.docx [style*="background-image"] { filter: invert(1) hue-rotate(180deg); }
 .dv-pages mark.dv-hit { background: #ffd33d; color: #000; }
 .dv-pages mark.dv-hit.dv-current { background: #ff9632; outline: 2px solid #c25e00; }
+
+/* ---------- tracked changes and comments (Reading view) ---------- */
+.dv-rev { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; max-width: 860px; margin: 16px auto 0; padding: 8px 12px; border-radius: 4px; background: var(--vscode-editorWidget-background, #f3f3f3); color: var(--vscode-foreground, #333); border: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.35)); font-size: 13px; }
+.dv-rev-authors { display: inline-flex; flex-wrap: wrap; gap: 6px; flex: 1; }
+.dv-rev-author { padding: 0 6px; border-radius: 3px; border-left: 4px solid var(--dv-ac); }
+.dv-rev-modes { display: inline-flex; gap: 2px; }
+.dv-rev-modes .dv-btn[aria-pressed="true"] { background: var(--vscode-button-background, #0e639c); color: var(--vscode-button-foreground, #fff); }
+/* One color per author. Text keeps the page color (full contrast); the author color is in the
+   underline or strike line and a light tint behind the text. */
+.dv-a1 { --dv-ac: #2f7fd8; } .dv-a2 { --dv-ac: #d6453d; } .dv-a3 { --dv-ac: #2e9e5b; } .dv-a4 { --dv-ac: #e08a00; }
+.dv-a5 { --dv-ac: #8f5ad6; } .dv-a6 { --dv-ac: #c9a400; } .dv-a7 { --dv-ac: #0f9d9a; } .dv-a8 { --dv-ac: #c2185b; }
+.dv-page ins.dv-ins { text-decoration: underline 2px var(--dv-ac, #2f7fd8); text-underline-offset: 2px; background: color-mix(in srgb, var(--dv-ac, #2f7fd8) 16%, transparent); color: inherit; }
+.dv-page del.dv-del { text-decoration: line-through 2px var(--dv-ac, #d6453d); background: color-mix(in srgb, var(--dv-ac, #d6453d) 12%, transparent); color: inherit; opacity: 0.85; }
+.dv-page sup a[href^="#d-comment-"] { font-size: 0.75em; padding: 0 2px; border-radius: 2px; background: color-mix(in srgb, #e08a00 25%, transparent); text-decoration: none; }
+.dv-page dl dt { font-weight: 600; margin-top: 12px; }
+.dv-page dl dd { margin: 4px 0 0 16px; }

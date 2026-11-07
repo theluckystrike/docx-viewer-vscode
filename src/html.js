@@ -7,11 +7,14 @@ const VOID = new Set(['br', 'hr', 'img', 'col', 'wbr']);
 const ALLOWED = new Set([
   'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'b', 'em', 'i', 'u', 's', 'del', 'sup', 'sub',
   'a', 'img', 'br', 'hr', 'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th', 'ul', 'ol', 'li',
-  'blockquote', 'pre', 'code', 'span', 'div', 'colgroup', 'col', 'caption', 'small'
+  'blockquote', 'pre', 'code', 'span', 'div', 'colgroup', 'col', 'caption', 'small',
+  'ins', 'dl', 'dt', 'dd'
 ]);
 // Tags whose content is dropped together with the tag.
 const DROP_WITH_CONTENT = new Set(['script', 'style', 'iframe', 'object', 'embed', 'svg', 'math', 'template', 'noscript', 'textarea', 'title', 'head']);
-const ALLOWED_CLASSES = new Set(['dv-title', 'dv-subtitle', 'dv-caption']);
+const ALLOWED_CLASSES = new Set(['dv-title', 'dv-subtitle', 'dv-caption', 'dv-ins', 'dv-del', 'dv-comments-title']);
+// Tracked changes: one class per author (1-8) and one per change (see src/revisions.js).
+const ALLOWED_CLASS_RE = /^dv-(a[1-8]|c[0-9]{1,6})$/;
 const IMG_SRC = /^data:image\/(png|jpe?g|gif|bmp|webp);base64,[A-Za-z0-9+/=\s]+$/i;
 const EXTERNAL_HREF = /^(https?:\/\/|mailto:)/i;
 
@@ -138,7 +141,7 @@ function sanitize(rawTree) {
     const attrs = {};
     if (a.id) { const id = safeId(a.id); if (id) attrs.id = id; }
     if (a.class) {
-      const cls = a.class.split(/\s+/).filter((c) => ALLOWED_CLASSES.has(c));
+      const cls = a.class.split(/\s+/).filter((c) => ALLOWED_CLASSES.has(c) || ALLOWED_CLASS_RE.test(c));
       if (cls.length) attrs.class = cls.join(' ');
     }
     if (node.tag === 'a') {

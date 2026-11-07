@@ -250,6 +250,21 @@
       if (m.type === 'theme') { state.theme = m.theme; applyTheme(); save(); return; }
       if (m.type === 'find') { q.focus(); q.select(); return; }
       if (m.type === 'zoom') { state.zoom = P.clampZoom(m.zoom); applyZoom(false); return; }
+      if (m.type === 'pageNote') {
+        $('dv-page-note-text').textContent = m.text;
+        const box = $('dv-page-note-actions');
+        box.textContent = '';
+        m.actions.forEach(function (name) {
+          const b = doc.createElement('button');
+          b.type = 'button';
+          b.className = 'dv-btn';
+          b.textContent = name === 'showReading' ? 'Reading view' : name;
+          b.addEventListener('click', function () { vscode.postMessage({ type: 'command', name: name }); });
+          box.appendChild(b);
+        });
+        $('dv-page-note').hidden = false;
+        return;
+      }
       if (m.type !== 'pageData') return;
       $('dv-name').textContent = m.meta.fileName || '';
       if (m.theme && !saved.theme) { state.theme = m.theme; applyTheme(); }

@@ -340,3 +340,43 @@ test('package.json declares the Page view settings', () => {
   assert.strictEqual(props['docxViewer.pageViewMaxMB'].default, 20);
   assert.strictEqual(props['docxViewer.zoom'].default, 1);
 });
+
+// ---------- tracked changes and comments (host side) ----------
+test('tracked.docx opens in Markup with the bar; Final and Original re-render; Copy stays on Final', async () => {
+  const { provider, doc, panel } = await open('tracked.docx');
+  const begin = panel.posted[0];
+  assert.strictEqual(begin.type, 'begin');
+  assert.deepStrictEqual(begin.revisions, { label: '2 changes by 2 people · 1 comment', mode: 'markup', authors: ['Alice', 'Bob'] });
+  const end = panel.posted[panel.posted.length - 1];
+  assert.deepStrictEqual(Object.values(end.changes).map((c) => c.author), ['Alice', 'Bob']);
+  assert.match(panel.posted.filter((m) => m.type === 'chunk').map((m) => m.html).join(''), /<del class="dv-del dv-a1 dv-c0">100<\/del><ins class="dv-ins dv-a2 dv-c1">120<\/ins>/);
+  assert.deepStrictEqual(end.outline.map((o) => o.text), ['Fees', 'Comments (1)']);
+  panel.posted.length = 0;
+  await panel.send({ type: 'command', name: 'revOriginal' });
+  assert.strictEqual(panel.posted[0].revisions.mode, 'original');
+  assert.match(panel.posted.filter((m) => m.type === 'chunk').map((m) => m.html).join(''), /The fee is 100 EUR/);
+  panel.posted.length = 0;
+  await panel.send({ type: 'command', name: 'revFinal' });
+  assert.strictEqual(panel.posted[0].revisions.mode, 'final');
+  assert.strictEqual(panel.posted[panel.posted.length - 1].changes, null);
+  calls.clipboard.length = 0;
+  await panel.send({ type: 'command', name: 'copyMarkdown' });
+  assert.strictEqual(calls.clipboard[0], '# Fees\n\nThe fee is 120 EUR\n');
+  assert.ok(provider && doc);
+});
+
+test('Page view says that Reading view shows the changes, only for files that have them', async () => {
+  const { pageNoteText } = require('../src/extension');
+  assert.strictEqual(pageNoteText({ changes: 12, comments: 4 }), 'This document has 12 tracked changes and 4 comments. Reading view shows them.');
+  settings.defaultView = 'page';
+  try {
+    const t = await open('tracked.docx');
+    await settle();
+    assert.deepStrictEqual(t.panel.posted.map((m) => m.type), ['pageData', 'pageNote']);
+    assert.strictEqual(t.panel.posted[1].text, 'This document has 2 tracked changes and 1 comment. Reading view shows them.');
+    assert.deepStrictEqual(t.panel.posted[1].actions, ['showReading']);
+    const s = await open('sample.docx');
+    await settle();
+    assert.deepStrictEqual(s.panel.posted.map((m) => m.type), ['pageData']);
+  } finally { delete settings.defaultView; }
+});

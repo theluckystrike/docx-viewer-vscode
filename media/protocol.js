@@ -8,7 +8,7 @@
   'use strict';
   const VERSION = 1;
   // webview -> extension
-  const COMMANDS = ['openAsText', 'copyMarkdown', 'openInDefaultApp', 'openAnyway', 'reload', 'openSettings', 'showPage', 'showReading', 'pageAnyway'];
+  const COMMANDS = ['openAsText', 'copyMarkdown', 'openInDefaultApp', 'openAnyway', 'reload', 'openSettings', 'showPage', 'showReading', 'pageAnyway', 'revMarkup', 'revFinal', 'revOriginal'];
   const THEMES = ['auto', 'light', 'dark'];
   const VIEWS = ['reading', 'page'];
   const PAGE_FAILURES = ['error', 'timeout', 'empty'];
@@ -60,9 +60,10 @@
     const total = result.chunks.length;
     const banner = typeof result.banner === 'string' ? result.banner : '';
     const bannerActions = Array.isArray(result.bannerActions) ? result.bannerActions.filter((a) => COMMANDS.indexOf(a) !== -1) : [];
-    const out = [{ type: 'begin', v: VERSION, meta: meta, total: total, banner: banner, bannerActions: bannerActions }];
+    const revisions = isObj(result.revisions) ? { label: String(result.revisions.label || ''), mode: result.revisions.mode, authors: (result.revisions.authors || []).map(String).slice(0, 20) } : null;
+    const out = [{ type: 'begin', v: VERSION, meta: meta, total: total, banner: banner, bannerActions: bannerActions, revisions: revisions }];
     for (let i = 0; i < total; i++) out.push({ type: 'chunk', index: i, total: total, html: result.chunks[i] });
-    out.push({ type: 'end', outline: result.outline, warnings: result.warnings, stats: result.stats });
+    out.push({ type: 'end', outline: result.outline, warnings: result.warnings, stats: result.stats, changes: isObj(result.changeTable) ? result.changeTable : null });
     return out;
   }
 
@@ -77,6 +78,7 @@
       case 'begin': return isObj(m.meta) && Number.isInteger(m.total) && m.total >= 1 && (m.banner === undefined || typeof m.banner === 'string') && (m.bannerActions === undefined || (Array.isArray(m.bannerActions) && m.bannerActions.every((a) => COMMANDS.indexOf(a) !== -1)));
       case 'pageData': return isObj(m.meta) && (m.bytes instanceof Uint8Array || m.bytes instanceof ArrayBuffer) && THEMES.indexOf(m.theme) !== -1;
       case 'zoom': return typeof m.zoom === 'number';
+      case 'pageNote': return typeof m.text === 'string' && Array.isArray(m.actions) && m.actions.every((a) => COMMANDS.indexOf(a) !== -1);
       case 'chunk': return Number.isInteger(m.index) && m.index >= 0 && m.index < m.total && typeof m.html === 'string';
       case 'end': return Array.isArray(m.outline) && Array.isArray(m.warnings) && isObj(m.stats);
       case 'notice': return typeof m.title === 'string' && typeof m.detail === 'string' && Array.isArray(m.actions);

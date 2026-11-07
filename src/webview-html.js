@@ -58,6 +58,7 @@ ${footer ? `<style nonce="${n}">${FOOTER_CSS}</style>` : ''}
 <div class="dv-main">
   <nav id="dv-outline" class="dv-outline" aria-label="Outline"><div class="dv-outline-title">Outline</div><ol id="dv-outline-list"></ol></nav>
   <main id="dv-scroll" class="dv-scroll" tabindex="-1">
+    <div id="dv-rev" class="dv-rev" role="group" aria-label="Tracked changes and comments" hidden><span id="dv-rev-text"></span><span id="dv-rev-authors" class="dv-rev-authors"></span><span class="dv-rev-modes"><button type="button" class="dv-btn" data-rev="revMarkup" title="Show insertions, deletions and comments">Markup</button><button type="button" class="dv-btn" data-rev="revFinal" title="As if every change were accepted">Final</button><button type="button" class="dv-btn" data-rev="revOriginal" title="As if every change were rejected">Original</button></span></div>
     <div id="dv-banner" class="dv-banner" role="note" hidden><span id="dv-banner-text"></span><span id="dv-banner-actions" class="dv-banner-actions"></span></div>
     <div id="dv-status" class="dv-status">Opening document...</div>
     <article id="dv-doc" class="dv-page" hidden></article>
@@ -139,6 +140,7 @@ ${footer ? `<style>${FOOTER_CSS}</style>` : ''}
 <div class="dv-main">
   <nav id="dv-outline" class="dv-outline" aria-label="Outline"><div class="dv-outline-title">Outline</div><ol id="dv-outline-list"></ol></nav>
   <main id="dv-pages" class="dv-scroll dv-pages" tabindex="-1">
+    <div id="dv-page-note" class="dv-banner" role="note" hidden><span id="dv-page-note-text"></span><span id="dv-page-note-actions" class="dv-banner-actions"></span></div>
     <div id="dv-status" class="dv-status">Laying out pages...</div>
     <div id="dv-page-styles" hidden></div>
     <div id="dv-page-root" class="dv-page-root"></div>

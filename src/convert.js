@@ -8,6 +8,7 @@ const { convertOdt, odfKind } = require('./odt');
 const H = require('./html');
 const { detectFormat, noticeFor, isLegacyExt, ENCRYPTED_DOC } = require('./detect');
 const LegacyDoc = require('./doc');
+const Rev = require('./revisions');
 
 const DEFAULTS = {
   maxImageBytes: 5 * 1024 * 1024,
@@ -81,11 +82,48 @@ async function convertDocx(buf, options) {
     if (!r.ok) return r;
     return finish(r.html, r.warnings, opts, t0, 'odt');
   }
+  // Tracked changes and comments: a cheap look at the raw XML first. Files without them take the
+  // plain path. Final (the default for Copy, Open as Text and Compare) is always the untouched file.
+  const mode = Rev.MODES.includes(opts.revisionMode) ? opts.revisionMode : 'final';
+  let input = buffer;
+  let styleMap = STYLE_MAP;
+  let summary = null;
+  let changeTable = null;
+  let comments = null;
+  let docZip = null;
+  try { docZip = await JSZip.loadAsync(buffer); } catch (_) { docZip = null; } // mammoth reports the error below
+  const docPart = docZip && docZip.file('word/document.xml');
+  const commentsPart = docZip && docZip.file('word/comments.xml');
+  if (docPart) {
+    const documentXml = await docPart.async('string');
+    const commentsXml = commentsPart ? await commentsPart.async('string') : '';
+    if (Rev.hasChanges(documentXml) || commentsXml) {
+      summary = Rev.summarize(documentXml, commentsXml);
+      if (!summary.changes && !summary.comments) summary = null;
+    }
+    if (summary && mode !== 'final') {
+      if (summary.changes) {
+        const stylesPart = docZip.file('word/styles.xml');
+        const stylesXml = stylesPart ? await stylesPart.async('string') : '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"></w:styles>';
+        const rw = Rev.rewrite(documentXml, stylesXml, mode);
+        docZip.file('word/document.xml', rw.documentXml);
+        if (stylesPart) docZip.file('word/styles.xml', rw.stylesXml);
+        input = await docZip.generateAsync({ type: 'nodebuffer', compression: 'STORE' });
+        styleMap = rw.styleMap.concat(STYLE_MAP);
+        changeTable = rw.table;
+      }
+      if (mode === 'markup' && summary.comments) {
+        styleMap = styleMap.concat(['comment-reference => sup']);
+        comments = { info: Rev.commentInfo(commentsXml), count: summary.comments };
+      }
+    }
+  }
+  docZip = null;
   const imgStats = { totalBytes: 0, skipped: 0 };
   let result;
   try {
-    result = await mammoth.convertToHtml({ buffer }, {
-      styleMap: STYLE_MAP,
+    result = await mammoth.convertToHtml({ buffer: input }, {
+      styleMap,
       convertImage: makeImageConverter(opts, imgStats),
       includeDefaultStyleMap: true,
       ignoreEmptyParagraphs: true
@@ -106,7 +144,24 @@ async function convertDocx(buf, options) {
     const text = String(m.message || '').slice(0, 300);
     if (!seen.has(text) && warnings.length < 50) { seen.add(text); warnings.push(text); }
   }
-  return finish(result.value, warnings, opts, t0, 'docx');
+  const html = comments ? labelComments(result.value, comments) : result.value;
+  const r = finish(html, warnings.filter((w) => !/Zovo(Ins|Del)\d/.test(w)), opts, t0, 'docx');
+  if (summary) r.revisions = { changes: summary.changes, comments: summary.comments, authors: summary.authors.slice(0, 20), label: Rev.label(summary), mode };
+  if (changeTable && Object.keys(changeTable).length) r.changeTable = changeTable;
+  return r;
+}
+
+// Mammoth lists comments at the end as <dl><dt id="comment-N">Comment [AB1]</dt>... Give the list a
+// heading for the outline and put the author and date in each entry.
+function labelComments(html, comments) {
+  const at = html.indexOf('<dl><dt id="comment-');
+  if (at === -1) return html;
+  const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const tail = html.slice(at).replace(/<dt id="comment-(\d+)">([^<]*)<\/dt>/g, (m, id, old) => {
+    const c = comments.info[id];
+    return '<dt id="comment-' + id + '">' + (c ? esc(c.author) + (c.date ? ' · ' + esc(c.date) : '') + ' ' : '') + old.replace(/^Comment\s*/, '') + '</dt>';
+  });
+  return html.slice(0, at) + '<h2 class="dv-comments-title">Comments (' + comments.count + ')</h2>' + tail;
 }
 
 // Word 97-2003 .doc/.dot: text, simple tables and the side parts (headers, notes, comments, text boxes).

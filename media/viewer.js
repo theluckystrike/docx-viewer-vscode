@@ -58,6 +58,7 @@
     outlineList.textContent = '';
     $('dv-warnings').hidden = true;
     $('dv-banner').hidden = true;
+    $('dv-rev').hidden = true;
     statusEl.hidden = false;
     statusEl.className = 'dv-status';
     statusEl.textContent = 'Opening document...';
@@ -154,6 +155,36 @@
     box.textContent = '';
     actions.forEach(function (a) { box.appendChild(actionButton(a)); });
     $('dv-banner').hidden = false;
+  }
+
+  // ---------- tracked changes and comments ----------
+  const KIND = { ins: 'Inserted', moveTo: 'Moved here', del: 'Deleted', moveFrom: 'Moved away' };
+  document.querySelectorAll('[data-rev]').forEach(function (b) {
+    b.addEventListener('click', function () { vscode.postMessage({ type: 'command', name: b.dataset.rev }); });
+  });
+  function renderRevisions(rev) {
+    $('dv-rev-text').textContent = rev.label;
+    const box = $('dv-rev-authors');
+    box.textContent = '';
+    if (rev.mode === 'markup') {
+      rev.authors.slice(0, 8).forEach(function (name, i) {
+        const s = document.createElement('span');
+        s.className = 'dv-rev-author dv-a' + (i + 1);
+        s.textContent = name;
+        box.appendChild(s);
+      });
+    }
+    const name = { markup: 'revMarkup', final: 'revFinal', original: 'revOriginal' }[rev.mode];
+    document.querySelectorAll('[data-rev]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.rev === name)); });
+    $('dv-rev').hidden = false;
+  }
+  // Hover text on each change: who and when.
+  function labelChanges(table) {
+    doc.querySelectorAll('ins.dv-ins, del.dv-del').forEach(function (el) {
+      const id = Array.prototype.find.call(el.classList, function (c) { return /^dv-c\d+$/.test(c); });
+      const c = id && table[id.slice(3)];
+      if (c) el.title = (KIND[c.kind] || 'Changed') + ' by ' + c.author + (c.date ? ' on ' + c.date : '');
+    });
   }
 
   // ---------- zoom (CSS zoom keeps text selectable) ----------
@@ -273,6 +304,7 @@
       case 'begin':
         resetView(m.meta);
         if (m.banner) renderBanner(m.banner, m.bannerActions || []);
+        if (m.revisions) renderRevisions(m.revisions);
         break;
       case 'chunk': appendChunk(m.html); break;
       case 'end':
@@ -280,6 +312,7 @@
         if (!doc.childNodes.length) { doc.hidden = false; statusEl.hidden = true; doc.innerHTML = '<p class="dv-empty">This document has no text.</p>'; }
         renderOutline(m.outline);
         renderWarnings(m.warnings, m.stats);
+        if (m.changes) labelChanges(m.changes);
         if (state.scrollTop) scroller.scrollTop = state.scrollTop;
         if (q.value) runSearch();
         break;

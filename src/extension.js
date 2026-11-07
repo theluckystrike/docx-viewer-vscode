@@ -33,6 +33,14 @@ function cfg() {
 const PAGE_EXT = /\.(docx|dotx|docm)$/i;
 const VIEW_KEY = 'docxViewer.view';
 const ZOOM_KEY = 'docxViewer.zoom';
+function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+function pageNoteText(rev) {
+  const parts = [];
+  if (rev.changes) parts.push(plural(rev.changes, 'tracked change', 'tracked changes'));
+  if (rev.comments) parts.push(plural(rev.comments, 'comment', 'comments'));
+  return 'This document has ' + parts.join(' and ') + '. Reading view shows them.';
+}
+
 const NOTES = {
   tooLarge: 'This file is too large for Page view. Reading view is faster for it.',
   failed: 'Page view could not lay out this file, so it opens in Reading view.'
@@ -45,9 +53,11 @@ class DocxDocument {
     this.pending = null;
     this.allowLarge = false;
     this.allowLargePage = false;
+    this.revMode = 'markup'; // view for files with tracked changes or comments
+    this.alt = {}; // mode -> promise of the Markup or Original conversion
     this.version = 0;
   }
-  invalidate() { this.result = null; this.pending = null; this.version++; }
+  invalidate() { this.result = null; this.pending = null; this.alt = {}; this.version++; }
   dispose() { this.result = null; this.pending = null; }
 }
 
@@ -152,6 +162,9 @@ class DocxEditorProvider {
       case 'showPage': return this.switchView(panel, document, 'page', true);
       case 'showReading': return this.switchView(panel, document, 'reading', true);
       case 'pageAnyway': document.allowLargePage = true; return this.switchView(panel, document, 'page', false);
+      case 'revMarkup': document.revMode = 'markup'; return this.render(panel, document);
+      case 'revFinal': document.revMode = 'final'; return this.render(panel, document);
+      case 'revOriginal': document.revMode = 'original'; return this.render(panel, document);
     }
   }
 
@@ -188,6 +201,25 @@ class DocxEditorProvider {
     return r;
   }
 
+  // Markup or Original view of a file with tracked changes or comments, converted on first use.
+  // Copy as Markdown, Open as Text and Compare always use load() (Final).
+  async loadMode(document, mode) {
+    const base = await this.load(document);
+    if (mode === 'final' || !base.ok || !base.revisions) return base;
+    if (!document.alt[mode]) {
+      const c = cfg();
+      const ext = path.extname(document.uri.path).toLowerCase();
+      document.alt[mode] = (async () => {
+        const bytes = await vscode.workspace.fs.readFile(document.uri);
+        const r = await convertInWorker(bytes, { ext, maxImageBytes: c.maxImageBytes, maxTotalImageBytes: c.maxTotalImageBytes, revisionMode: mode });
+        if (!r.ok) return base;
+        r.size = base.size;
+        return r;
+      })();
+    }
+    return document.alt[mode];
+  }
+
   // Page view: send the file bytes to the webview, which lays them out. Files above
   // docxViewer.pageViewMaxMB go to Reading view with a note and an "anyway" button.
   async renderPage(panel, document) {
@@ -211,7 +243,12 @@ class DocxEditorProvider {
     // A Node Buffer (what readFile can return) arrives as a plain object instead.
     const copy = new Uint8Array(bytes.byteLength);
     copy.set(bytes);
-    return panel.webview.postMessage({ type: 'pageData', v: P.VERSION, meta: this.meta(document, size), theme: c.theme, zoom: this.zoom(), bytes: copy });
+    await panel.webview.postMessage({ type: 'pageData', v: P.VERSION, meta: this.meta(document, size), theme: c.theme, zoom: this.zoom(), bytes: copy });
+    // Page view does not draw tracked changes or comments. Say so once the converter has counted them.
+    const r = await this.load(document).catch(() => null);
+    if (r && r.ok && r.revisions && this.panels.has(panel) && this.views.get(panel) === 'page') {
+      return panel.webview.postMessage({ type: 'pageNote', text: pageNoteText(r.revisions), actions: ['showReading'] });
+    }
   }
 
   async render(panel, document) {
@@ -231,6 +268,12 @@ class DocxEditorProvider {
       const actions = r.tooLarge ? ['openAnyway', 'openInDefaultApp', 'openSettings'] : r.notice.kind === 'error' ? ['reload', 'openInDefaultApp'] : ['openInDefaultApp'];
       return post(P.buildNotice(r.notice, meta, actions));
     }
+    if (r.revisions && document.revMode !== 'final') {
+      const alt = await this.loadMode(document, document.revMode);
+      if (!this.panels.has(panel)) return;
+      if (alt.ok) r = alt;
+    }
+    if (r.revisions) r = Object.assign({}, r, { revisions: Object.assign({}, r.revisions, { mode: document.revMode }) });
     const shown = note ? Object.assign({}, r, { banner: note.text + (r.banner ? ' ' + r.banner : ''), bannerActions: note.actions.concat(r.bannerActions || []) }) : r;
     for (const m of P.buildRenderMessages(shown, meta)) {
       if (!this.panels.has(panel)) return;
@@ -346,4 +389,4 @@ function activate(context) {
 
 function deactivate() {}
 
-module.exports = { activate, deactivate, DocxEditorProvider, DocxDocument, convertBytes, NOTES };
+module.exports = { activate, deactivate, DocxEditorProvider, DocxDocument, convertBytes, NOTES, pageNoteText };
