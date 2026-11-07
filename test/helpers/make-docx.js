@@ -20,7 +20,7 @@ function sectPr(landscape, refs) {
   return `<w:sectPr>${refs || ''}${size}<w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr>`;
 }
 
-// opts: { body, header, footer, rels: [{id, type, target, external}], extraParts: {path: content}, contentTypes: [xml] }
+// opts: { body, ns (extra xmlns attributes), header, footer, rels: [{id, type, target, external}], extraParts: {path: content}, contentTypes: [xml] }
 async function makeDocx(opts) {
   const zip = new JSZip();
   const rels = [{ id: 'rIdStyles', type: 'styles', target: 'styles.xml' }].concat(opts.rels || []);
@@ -40,7 +40,7 @@ async function makeDocx(opts) {
   const relXml = rels.map((r) => `<Relationship Id="${r.id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/${r.type}" Target="${r.target}"${r.external ? ' TargetMode="External"' : ''}/>`).join('');
   zip.file('word/_rels/document.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${relXml}</Relationships>`);
   zip.file('word/styles.xml', STYLES);
-  zip.file('word/document.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${W} xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>${opts.body}</w:body></w:document>`);
+  zip.file('word/document.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${W} xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"${opts.ns ? ' ' + opts.ns : ''}><w:body>${opts.body}</w:body></w:document>`);
   for (const [k, v] of Object.entries(opts.extraParts || {})) zip.file(k, v);
   return zip.generateAsync({ type: 'nodebuffer' });
 }

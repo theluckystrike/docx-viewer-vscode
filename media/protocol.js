@@ -24,6 +24,7 @@
     if (!dir) return 1;
     return clampZoom(Math.round((clampZoom(z) + dir * ZOOM.step) * 10) / 10);
   }
+  const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/bmp', 'image/webp'];
   const SAFE_LINK = /^(https?:\/\/|mailto:)[^\s<>"]{1,2040}$/i;
 
   function isObj(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
@@ -48,6 +49,8 @@
         return { ok: true, msg: { type: 'setZoom', zoom: clampZoom(m.zoom) } };
       case 'pageFailed':
         return { ok: true, msg: { type: 'pageFailed', reason: PAGE_FAILURES.indexOf(m.reason) === -1 ? 'error' : m.reason, ms: Number.isFinite(m.ms) ? Math.round(m.ms) : 0 } };
+      case 'setToolbar':
+        return { ok: true, msg: { type: 'setToolbar', hidden: m.hidden === true } };
       case 'pageRendered':
         return { ok: true, msg: { type: 'pageRendered', ms: Number.isFinite(m.ms) ? Math.round(m.ms) : 0, pages: Number.isInteger(m.pages) ? m.pages : 0 } };
       default:
@@ -63,6 +66,7 @@
     const revisions = isObj(result.revisions) ? { label: String(result.revisions.label || ''), mode: result.revisions.mode, authors: (result.revisions.authors || []).map(String).slice(0, 20) } : null;
     const out = [{ type: 'begin', v: VERSION, meta: meta, total: total, banner: banner, bannerActions: bannerActions, revisions: revisions }];
     for (let i = 0; i < total; i++) out.push({ type: 'chunk', index: i, total: total, html: result.chunks[i] });
+    if (Array.isArray(result.images) && result.images.length) out.splice(1, 0, { type: 'images', list: result.images });
     out.push({ type: 'end', outline: result.outline, warnings: result.warnings, stats: result.stats, changes: isObj(result.changeTable) ? result.changeTable : null });
     return out;
   }
@@ -83,10 +87,28 @@
       case 'end': return Array.isArray(m.outline) && Array.isArray(m.warnings) && isObj(m.stats);
       case 'notice': return typeof m.title === 'string' && typeof m.detail === 'string' && Array.isArray(m.actions);
       case 'theme': return THEMES.indexOf(m.theme) !== -1;
+      case 'images': return Array.isArray(m.list) && m.list.every((im) => isObj(im) && IMAGE_TYPES.indexOf(im.type) !== -1 && (im.data instanceof Uint8Array || im.data instanceof ArrayBuffer));
+      case 'toolbar': return typeof m.hidden === 'boolean';
+      case 'font': return typeof m.font === 'string';
       case 'find': case 'loading': return true;
       default: return false;
     }
   }
 
-  return { VERSION, COMMANDS, THEMES, VIEWS, ZOOM, clampZoom, nextZoom, validateInbound, validateOutbound, buildRenderMessages, buildNotice };
+  // Toolbar hide/show buttons, shared by Reading view and Page view. Ctrl+Shift+H is a VS Code
+  // keybinding (command docxViewer.toggleToolbar), so the workbench gets the key, not the webview.
+  function setupToolbar(doc, vscode) {
+    const body = doc.body;
+    const set = (hidden, post) => {
+      body.dataset.bar = hidden ? 'hidden' : 'shown';
+      if (post) vscode.postMessage({ type: 'setToolbar', hidden: hidden });
+    };
+    const hide = doc.getElementById('dv-bar-hide');
+    const show = doc.getElementById('dv-bar-show');
+    if (hide) hide.addEventListener('click', function () { set(true, true); });
+    if (show) show.addEventListener('click', function () { set(false, true); });
+    return set;
+  }
+
+  return { VERSION, COMMANDS, IMAGE_TYPES, setupToolbar, THEMES, VIEWS, ZOOM, clampZoom, nextZoom, validateInbound, validateOutbound, buildRenderMessages, buildNotice };
 });

@@ -141,11 +141,11 @@ test('a Word 97-2003 .doc renders its text with the text-only banner', async () 
   assert.strictEqual(sample.panel.posted[0].banner, '', 'no banner for .docx');
 });
 
-test('RTF saved as .doc gets its own notice with Open in default app only', async () => {
+test('RTF saved as .doc opens as text with a note and Open in default app', async () => {
   const { panel } = await open('rtf-as.doc');
-  assert.strictEqual(panel.posted[0].type, 'notice');
-  assert.strictEqual(panel.posted[0].title, 'This .doc file is really an RTF file');
-  assert.deepStrictEqual(panel.posted[0].actions, ['openInDefaultApp']);
+  assert.strictEqual(panel.posted[0].type, 'begin');
+  assert.match(panel.posted[0].banner, /Rich Text Format/);
+  assert.deepStrictEqual(panel.posted[0].bannerActions, ['openInDefaultApp']);
 });
 
 test('oversized file asks first, and Open anyway renders it', async () => {
@@ -286,9 +286,10 @@ test('Page view failure falls back to Reading view with a notice, never an empty
   } finally { delete settings.defaultView; }
 });
 
-test('size guard: a 25 MB file opens in Reading view with the note and an "anyway" button', async () => {
+test('size guard: a 25 MB file with pageViewMaxMB 20 opens in Reading view with the note and an "anyway" button', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docxv-big-'));
   settings.defaultView = 'page';
+  settings.pageViewMaxMB = 20; // the default is 100 since 0.3.0
   try {
     const big = path.join(dir, 'big.docx');
     const fd = fs.openSync(big, 'w');
@@ -312,6 +313,7 @@ test('size guard: a 25 MB file opens in Reading view with the note and an "anywa
     await panel.send({ type: 'ready' });
     assert.strictEqual(panel.posted[0].type, 'pageData');
   } finally {
+    delete settings.pageViewMaxMB;
     delete settings.defaultView;
     fs.rmSync(dir, { recursive: true, force: true });
   }
@@ -337,7 +339,7 @@ test('package.json declares the Page view settings', () => {
   const props = pj.contributes.configuration.properties;
   assert.deepStrictEqual(props['docxViewer.defaultView'].enum, ['reading', 'page']);
   assert.strictEqual(props['docxViewer.defaultView'].default, 'reading');
-  assert.strictEqual(props['docxViewer.pageViewMaxMB'].default, 20);
+  assert.strictEqual(props['docxViewer.pageViewMaxMB'].default, 100); // 0.3.0: a 47 MB report lays out in 0.4 s
   assert.strictEqual(props['docxViewer.zoom'].default, 1);
 });
 

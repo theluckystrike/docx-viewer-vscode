@@ -19,7 +19,7 @@ function buildWebviewHtml(opts) {
   const footer = footerHtml('docxViewer', opts.showSupportLinks !== false, 'zovo-support-fixed');
   const csp = [
     "default-src 'none'",
-    'img-src data: ' + opts.cspSource,
+    'img-src blob: data: ' + opts.cspSource,
     'style-src ' + opts.cspSource + " 'nonce-" + n + "'",
     'font-src ' + opts.cspSource,
     "script-src 'nonce-" + n + "'",
@@ -38,7 +38,7 @@ function buildWebviewHtml(opts) {
 ${footer ? `<style nonce="${n}">${FOOTER_CSS}</style>` : ''}
 <title>DOCX Viewer</title>
 </head>
-<body data-theme="${escapeAttr(opts.theme || 'auto')}" data-zoom="${zoomAttr(opts.zoom)}">
+<body data-theme="${escapeAttr(opts.theme || 'auto')}" data-zoom="${zoomAttr(opts.zoom)}" data-bar="${opts.toolbarHidden ? 'hidden' : 'shown'}" data-font="${escapeAttr(fontAttr(opts.font))}">
 <header class="dv-bar" role="toolbar" aria-label="Document toolbar">
   <button type="button" id="dv-outline-toggle" class="dv-btn" title="Show or hide the outline" aria-pressed="true">Outline</button>
   <span id="dv-name" class="dv-name"></span>
@@ -54,7 +54,9 @@ ${footer ? `<style nonce="${n}">${FOOTER_CSS}</style>` : ''}
   ${opts.pageAvailable ? '<button type="button" id="dv-view" class="dv-btn" data-cmd="showPage" title="Show the pages the way Word lays them out">Page view</button>' : ''}
   <button type="button" class="dv-btn" data-cmd="copyMarkdown" title="Copy the whole document as Markdown">Copy Markdown</button>
   <button type="button" class="dv-btn" data-cmd="openAsText" title="Open the plain text in a new editor">Open as Text</button>
+  <button type="button" id="dv-bar-hide" class="dv-btn dv-icon" title="Hide the toolbar (Ctrl+Shift+H)" aria-label="Hide the toolbar">&#8963;</button>
 </header>
+<button type="button" id="dv-bar-show" class="dv-btn dv-bar-show" title="Show the toolbar (Ctrl+Shift+H)" aria-label="Show the toolbar">&#8964;</button>
 <div class="dv-main">
   <nav id="dv-outline" class="dv-outline" aria-label="Outline"><div class="dv-outline-title">Outline</div><ol id="dv-outline-list"></ol></nav>
   <main id="dv-scroll" class="dv-scroll" tabindex="-1">
@@ -71,6 +73,12 @@ ${footer}
 <script nonce="${n}" src="${escapeAttr(opts.uris.viewer)}"></script>
 </body>
 </html>`;
+}
+
+// docxViewer.fontFamily: '' (document fonts), 'editor' (the editor font) or a font list.
+function fontAttr(f) {
+  const v = typeof f === 'string' ? f.trim() : '';
+  return /^[\w\s,"'.-]{0,200}$/.test(v) ? v : '';
 }
 
 function zoomAttr(z) {
@@ -120,7 +128,7 @@ function buildPageHtml(opts) {
 ${footer ? `<style>${FOOTER_CSS}</style>` : ''}
 <title>DOCX Viewer</title>
 </head>
-<body class="dv-pageview" data-theme="${escapeAttr(opts.theme || 'auto')}" data-zoom="${zoomAttr(opts.zoom)}">
+<body class="dv-pageview" data-theme="${escapeAttr(opts.theme || 'auto')}" data-zoom="${zoomAttr(opts.zoom)}" data-bar="${opts.toolbarHidden ? 'hidden' : 'shown'}">
 <header class="dv-bar" role="toolbar" aria-label="Document toolbar">
   <button type="button" id="dv-outline-toggle" class="dv-btn" title="Show or hide the outline" aria-pressed="true">Outline</button>
   <span id="dv-name" class="dv-name"></span>
@@ -136,7 +144,9 @@ ${footer ? `<style>${FOOTER_CSS}</style>` : ''}
   <button type="button" id="dv-view" class="dv-btn" data-cmd="showReading" title="Show the text as one flowing column">Reading view</button>
   <button type="button" class="dv-btn" data-cmd="copyMarkdown" title="Copy the whole document as Markdown">Copy Markdown</button>
   <button type="button" class="dv-btn" data-cmd="openAsText" title="Open the plain text in a new editor">Open as Text</button>
+  <button type="button" id="dv-bar-hide" class="dv-btn dv-icon" title="Hide the toolbar (Ctrl+Shift+H)" aria-label="Hide the toolbar">&#8963;</button>
 </header>
+<button type="button" id="dv-bar-show" class="dv-btn dv-bar-show" title="Show the toolbar (Ctrl+Shift+H)" aria-label="Show the toolbar">&#8964;</button>
 <div class="dv-main">
   <nav id="dv-outline" class="dv-outline" aria-label="Outline"><div class="dv-outline-title">Outline</div><ol id="dv-outline-list"></ol></nav>
   <main id="dv-pages" class="dv-scroll dv-pages" tabindex="-1">
@@ -155,4 +165,4 @@ ${footer}
 </html>`;
 }
 
-module.exports = { buildWebviewHtml, buildPageHtml, pageCsp, nonce };
+module.exports = { buildWebviewHtml, buildPageHtml, pageCsp, nonce, fontAttr };

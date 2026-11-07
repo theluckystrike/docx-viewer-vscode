@@ -16,6 +16,8 @@ const ALLOWED_CLASSES = new Set(['dv-title', 'dv-subtitle', 'dv-caption', 'dv-in
 // Tracked changes: one class per author (1-8) and one per change (see src/revisions.js).
 const ALLOWED_CLASS_RE = /^dv-(a[1-8]|c[0-9]{1,6})$/;
 const IMG_SRC = /^data:image\/(png|jpe?g|gif|bmp|webp);base64,[A-Za-z0-9+/=\s]+$/i;
+// Images that travel next to the HTML as bytes (src/convert.js) and become blob: URLs in the webview.
+const IMG_REF = /^dv-img:([0-9]{1,6})$/;
 const EXTERNAL_HREF = /^(https?:\/\/|mailto:)/i;
 
 const TAG_RE = /<!--[\s\S]*?-->|<(\/?)([a-zA-Z][a-zA-Z0-9]*)((?:\s+[^\s"'<>\/=]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+))?)*)\s*(\/?)>/g;
@@ -100,6 +102,7 @@ function parse(html) {
 
 function textOf(node) {
   if (node.type === 'text') return node.text;
+  if (node.type === 'raw') return node.text;
   let s = '';
   for (const c of node.children || []) s += textOf(c);
   return s;
@@ -156,6 +159,11 @@ function sanitize(rawTree) {
     if (node.tag === 'img') {
       const src = a.src || '';
       const alt = (a.alt || '').slice(0, 500);
+      const ref = IMG_REF.exec(src);
+      if (ref && !a['data-dv-skipped']) {
+        images++;
+        return { type: 'el', tag: 'img', attrs: { 'data-dv-img': ref[1], alt }, children: [] };
+      }
       if (a['data-dv-skipped'] || !IMG_SRC.test(src)) {
         skippedImages++;
         const why = a['data-dv-skipped'] || 'this image format cannot be shown';
@@ -184,6 +192,7 @@ function sanitize(rawTree) {
 
 function renderNode(node) {
   if (node.type === 'text') return escapeText(node.text);
+  if (node.type === 'raw') return node.html;
   if (node.type === 'root') return node.children.map(renderNode).join('');
   let s = '<' + node.tag;
   for (const k of Object.keys(node.attrs)) s += ' ' + k + '="' + escapeAttr(node.attrs[k]) + '"';
@@ -225,6 +234,7 @@ function inlineMd(nodes, ctx) {
   let s = '';
   for (const n of nodes) {
     if (n.type === 'text') { s += mdEscape(n.text.replace(/\s+/g, ' ')); continue; }
+    if (n.type === 'raw') { s += n.kind === 'math' ? mdEscape(n.markdown) : ' ' + mdEscape(n.text.split('\n')[0]) + ' '; continue; }
     const inner = () => inlineMd(n.children, ctx);
     switch (n.tag) {
       case 'strong': case 'b': { const t = inner(); s += t.trim() ? '**' + t + '**' : t; break; }
@@ -318,6 +328,7 @@ function blocksMd(nodes, ctx) {
   const out = [];
   for (const n of nodes) {
     if (n.type === 'text') { const t = tidy(mdEscape(n.text)); if (t) out.push(t); continue; }
+    if (n.type === 'raw') { out.push(n.kind === 'math' ? mdEscape(n.markdown) : n.markdown); continue; }
     if (/^h[1-6]$/.test(n.tag)) { const t = tidy(inlineMd(n.children, ctx)); if (t) out.push('#'.repeat(Number(n.tag[1])) + ' ' + t); continue; }
     switch (n.tag) {
       case 'p': case 'caption': { const t = tidy(inlineMd(n.children, ctx)); if (t) out.push(/^(#|>|-|\+|\d+\.)\s/.test(t) ? '\\' + t : t); break; }
@@ -359,6 +370,7 @@ function inlineText(nodes, ctx) {
   let s = '';
   for (const n of nodes) {
     if (n.type === 'text') { s += n.text.replace(/\s+/g, ' '); continue; }
+    if (n.type === 'raw') { s += n.kind === 'math' ? n.text : ' ' + n.text.split('\n')[0] + ' '; continue; }
     if (n.tag === 'br') { s += '\n'; continue; }
     if (n.tag === 'img') { s += '[image' + (n.attrs.alt ? ': ' + n.attrs.alt : '') + ']'; continue; }
     if (n.tag === 'a' && /^#d-(foot|end)note-ref-/.test(n.attrs.href || '')) continue;
@@ -377,6 +389,7 @@ function blocksText(nodes, ctx, depth) {
   const out = [];
   for (const n of nodes) {
     if (n.type === 'text') { const t = cleanLine(n.text); if (t) out.push(t); continue; }
+    if (n.type === 'raw') { out.push(n.text); continue; }
     if (n.tag === 'ul' || n.tag === 'ol') {
       const fn = n.attrs.class === 'dv-footnotes';
       if (fn) out.push('Notes');
@@ -413,7 +426,55 @@ function toPlainText(tree) {
   return t ? t + '\n' : '';
 }
 
+// ---------- equations and charts ----------
+
+// Swaps the marker runs from src/prep.js for prebuilt MathML or chart markup (raw nodes). A paragraph
+// that holds nothing but block items (a display equation, a chart) is replaced by them, so a chart's
+// <figure> never sits inside a <p>. Markers with no item (or forged ones) are removed.
+function injectItems(tree, items, tag) {
+  if (!tag) return { equations: 0, charts: 0 };
+  const re = new RegExp('\uE000' + tag + ':[0-9]+\uE001', 'g');
+  const counts = { equations: 0, charts: 0 };
+  function walk(node) {
+    if (!node.children) return;
+    const out = [];
+    for (const c of node.children) {
+      if (c.type === 'text' && c.text.indexOf('\uE000') !== -1) {
+        let last = 0;
+        let m;
+        re.lastIndex = 0;
+        while ((m = re.exec(c.text))) {
+          if (m.index > last) out.push({ type: 'text', text: c.text.slice(last, m.index) });
+          const it = items[m[0]];
+          if (it) {
+            out.push({ type: 'raw', kind: it.kind, html: it.inlineHtml, blockHtml: it.html, markdown: it.markdown, text: it.text, block: it.block });
+            if (it.kind === 'math') counts.equations++; else counts.charts++;
+          }
+          last = re.lastIndex;
+        }
+        if (last < c.text.length) out.push({ type: 'text', text: c.text.slice(last) });
+        continue;
+      }
+      walk(c);
+      out.push(c);
+    }
+    node.children = out;
+    // Hoist: <p> (or a run wrapper) with only block items and spaces.
+    const hoisted = [];
+    for (const c of node.children) {
+      const only = c.type === 'el' && c.tag === 'p' && c.children.length && c.children.every((k) => (k.type === 'raw' && k.block) || (k.type === 'text' && !k.text.trim()));
+      if (only) {
+        for (const k of c.children) if (k.type === 'raw') hoisted.push(Object.assign({}, k, { html: k.kind === 'chart' ? k.blockHtml : '<p class="dv-eq">' + k.blockHtml + '</p>' }));
+      } else hoisted.push(c);
+    }
+    node.children = hoisted;
+  }
+  walk(tree);
+  return counts;
+}
+
 module.exports = {
+  injectItems,
   parse, sanitize, renderNode, chunkBlocks, toMarkdown, toPlainText,
   decodeEntities, escapeText, escapeAttr, textOf, formatBytes, safeId
 };

@@ -1,6 +1,6 @@
 # DOCX Viewer, Word Viewer & DOCX Preview (Dark Mode)
 
-For developers who get specs and contracts as Word files, DOCX Viewer opens .docx files in VS Code as a dark-mode preview with an outline, search and tables.
+For developers who get specs, contracts and reports as Word files, DOCX Viewer opens .docx, .odt and old .doc files in VS Code as a dark-mode preview with an outline, search, tables, charts and equations.
 
 ![A Word report open in VS Code in dark mode, with the heading outline on the left and a search for revenue on match 1 of 6](https://raw.githubusercontent.com/theluckystrike/docx-viewer-vscode/main/images/vscode-docx-dark.png)
 
@@ -9,6 +9,7 @@ For developers who get specs and contracts as Word files, DOCX Viewer opens .doc
 - Read Word and OpenDocument (.odt) specs, contracts and reports next to your code. The page follows your VS Code theme, or switch to white paper with one click.
 - Find things fast. Search shows a match count, and the outline jumps to any heading.
 - See what changed. Compare a document with its last Git commit, or with another version, in the VS Code diff view. Or copy the whole document as Markdown with tables and footnotes.
+- Open big real-world files. A 47 MB government report with 41 photos opens in about 1.5 seconds, and Page view lays it out in under half a second. The preview reloads when the file changes on disk. The whole extension is a 0.5 MB download and needs no Office or LibreOffice.
 
 ## Quick start
 
@@ -23,17 +24,25 @@ No .docx at hand? Run "DOCX Viewer: Open Sample Document" from the Command Palet
 
 ## What it shows
 
-Headings, paragraphs, bold, italic, underline and strikethrough. Bulleted and numbered lists, including nested ones. Tables with merged cells. Images inline (PNG, JPEG, GIF, BMP and WebP). Footnotes and endnotes, with links between the reference and the note. Hyperlinks, which open in your browser.
+Headings, paragraphs, bold, italic, underline and strikethrough. Bulleted and numbered lists, including nested ones. Tables with merged cells. Images inline (PNG, JPEG, GIF, BMP and WebP). Equations and charts (see below). Figure and table numbers. Footnotes and endnotes, with links between the reference and the note. Hyperlinks, which open in your browser.
 
 It reads `.docx`, `.dotx` (templates) and `.docm` files, and OpenDocument text files (`.odt` and `.ott` templates) from LibreOffice, Google Docs downloads and pandoc. Macros in `.docm` files never run. The viewer only reads the text and images.
 
-Old Word 97-2003 `.doc` and `.dot` files open as text. You get the paragraphs, simple tables, and the headers, footers, footnotes, comments and text boxes in their own sections. A grey bar says that formatting, images and layout are not shown, with a button to open the file in your default app. Search, Copy as Markdown, Open as Text and both compare commands work on them. A password-protected file gets a short message instead, and so does an RTF or HTML file saved with a `.doc` name. A password-protected `.docx` gets a similar message, since Word stores those in an encrypted container.
+Old Word 97-2003 `.doc` and `.dot` files open as text. You get the paragraphs, simple tables, and the headers, footers, footnotes, comments and text boxes in their own sections. A grey bar says that formatting, images and layout are not shown, with a button to open the file in your default app. Search, Copy as Markdown, Open as Text and both compare commands work on them. An old `.doc` file renamed to `.docx` or `.docm` opens the same way. Many websites publish RTF files with a `.doc` name; those open as text too, with their tables. A password-protected file gets a short message that says so, and so does an HTML file saved with a `.doc` name.
 
 ![The same report on white paper while VS Code stays dark, showing the revenue table and the installed capacity chart](images/screenshot-paper.png)
 
 ![The report in a light VS Code theme with a search for "region", on match 4 of 8](images/screenshot-light.png)
 
 ![An old Word 97-2003 .doc file shown as text, with the grey text-only bar and its table](images/vscode-doc-text.png)
+
+## Equations and charts
+
+Word equations show as real math in Reading view: fractions, roots, sub- and superscripts, sums and integrals with limits, brackets, matrices and equation arrays. Copy as Markdown and Open as Text write them as one line of text, such as `x=(-b±√(b^2-4ac))/(2a)`.
+
+Charts are drawn again from the numbers Word saves inside the file, so you see them without Excel: column, bar, line, area, pie, doughnut and scatter charts, with the title, the legend and a value on hover. "Chart data" under each chart opens its table, and Copy as Markdown copies that table.
+
+![An engineering note in Reading view with the Darcy-Weisbach equation and a column chart of pump flow, drawn from the values in the .docx](images/vscode-charts-equations.png)
 
 ## Page view
 
@@ -46,7 +55,7 @@ Click "Page view" in the toolbar to see the document the way Word lays it out. Y
 - Zoom goes from 50% to 300% with the minus and plus buttons, or `Ctrl+=` and `Ctrl+-` (`Cmd` on macOS). `Ctrl+0` goes back to 100%, and "Fit width" fits the widest page to the window. Reading view zooms the same way.
 - In a dark theme the pages turn dark too, and photos and charts keep their colors. The theme button switches to white paper.
 - The outline and search work on the pages, and search also finds text in headers and footers.
-- Page view opens `.docx`, `.dotx` and `.docm` files. Files over 20 MB (`docxViewer.pageViewMaxMB`) open in Reading view, with a button to try Page view anyway. If a file can't be laid out, it opens in Reading view with a one-line note.
+- Page view opens `.docx`, `.dotx` and `.docm` files. Files over 100 MB (`docxViewer.pageViewMaxMB`) open in Reading view, with a button to try Page view anyway. If a file can't be laid out, it opens in Reading view with a one-line note.
 
 ## Tracked changes and comments
 
@@ -75,6 +84,7 @@ Git runs on your machine with hooks and fsmonitor turned off, and only in a trus
 | "DOCX Viewer: Open in Default App" | Opens the file in Word, Pages or LibreOffice |
 | "DOCX Viewer: Compare with Git HEAD" | Shows what changed since the last commit, as a Markdown diff |
 | "DOCX Viewer: Compare with Another Document..." | Shows the differences between two documents, as a Markdown diff |
+| "DOCX Viewer: Show or Hide the Toolbar" | Hides the toolbar for more reading room, and shows it again (`Ctrl+Shift+H` / `Cmd+Shift+H` in the viewer). The small button at the top right also brings it back. |
 | "DOCX Viewer: Open Sample Document" | Opens a short sample report |
 | "DOCX Viewer: Support the developer" | Opens the GitHub Sponsors page |
 | "DOCX Viewer: More free viewers" | Lists the other Zovo extensions and installs the one you pick |
@@ -90,16 +100,27 @@ In the search box, `Enter` goes to the next match and `Shift+Enter` to the previ
 | `docxViewer.theme` | `auto` | `auto` follows VS Code, `light` shows white paper, `dark` a dark page |
 | `docxViewer.defaultView` | `reading` | `page` opens Word files in Page view in new workspaces. The toolbar switch is kept per workspace. |
 | `docxViewer.zoom` | `1` | Zoom for both views, from `0.5` to `3` |
-| `docxViewer.pageViewMaxMB` | `20` | Bigger files open in Reading view, with a button to try Page view anyway |
-| `docxViewer.maxFileSizeMB` | `50` | Bigger files ask before they open |
-| `docxViewer.maxImageSizeMB` | `5` | Bigger images show a placeholder instead |
-| `docxViewer.maxTotalImagesMB` | `40` | After this many MB of images, the rest show placeholders |
-| `docxViewer.askForRating` | `true` | Ask one time for a Marketplace rating, after 5 files and 2 days. Turn it off with `false`. |
+| `docxViewer.fontFamily` | empty | Font for Reading view. Empty keeps the Word-like default, `editor` uses your editor font, or give a font list such as `Georgia, serif` |
+| `docxViewer.pageViewMaxMB` | `100` | Bigger files open in Reading view, with a button to try Page view anyway |
+| `docxViewer.maxFileSizeMB` | `100` | Bigger files ask before they open |
+| `docxViewer.maxImageSizeMB` | `20` | Bigger images show a placeholder instead |
+| `docxViewer.maxTotalImagesMB` | `300` | After this many MB of images, the rest show placeholders |
+| `docxViewer.askForRating` | `true` | Ask one time for a Marketplace rating, after 3 files that opened without an error and 1 day. Turn it off with `false`. |
 | `docxViewer.showSupportLinks` | `true` | Show the small Sponsor and More free viewers line at the bottom right of the viewer. Turn it off with `false`. |
 
 ## Big files
 
-The converter runs in a worker thread with a memory cap and a 60 second limit, so a huge or broken file can't freeze VS Code. The page fills in from the top in chunks of about 200 KB of HTML, and you can read the first screen while the rest arrives. A test document of about 300 pages (97,000 words and 500 copies of one image) converted in about 1 second on an Apple M3 Pro. In Page view, a similar 300 page test file showed its first page in under a second in a real VS Code window.
+The converter runs in a worker thread with a memory cap and a 60 second limit, so a huge or broken file can't freeze VS Code. Pictures go to the viewer as raw bytes instead of text, which keeps big reports fast. The page fills in from the top in chunks of about 200 KB of HTML, and you can read the first screen while the rest arrives.
+
+Measured in a real VS Code 1.142 window on an Apple M3 Pro, from the click in the Explorer to the finished page:
+
+| File | 0.2.5 | 0.3.0 |
+| --- | --- | --- |
+| 47 MB government report, 41 photos, 31 headings | 4.1 s, 6 photos left out | 1.4 to 1.6 s, all 41 photos |
+| Same report in Page view | Reading view only (over 20 MB) | 0.4 s, 41 photos |
+| 475 KB report with 39,000 words | 1.9 s | 1.8 to 1.9 s |
+
+We test each release on 17 real-world files from public sources (Apache POI bug reports, a JNCC survey report, a gov.uk statistics file), including broken, password-protected and renamed files.
 
 ## Privacy
 
@@ -110,7 +131,7 @@ DOCX Viewer works offline. It makes no network calls and sends no telemetry. The
 - It's a viewer. It can't edit or save a document.
 - Reading view simplifies the layout. It leaves out page size, margins, headers, footers, columns, text boxes, fonts and colors, so the text reads like a clean web page. Page view shows them.
 - Page view doesn't show tracked changes or comments. It says so and offers Reading view.
-- Charts, SmartArt and equations don't show. EMF, WMF and TIFF images show a placeholder. Tracked changes to paragraph marks, formatting and table rows show as in Final.
+- SmartArt doesn't show. Excel 2016 chart types (waterfall, treemap and others) show the picture Word saved with them, if there is one. Page view draws equations its own way and shows charts only as their saved picture. EMF, WMF and TIFF images show a placeholder. Tracked changes to paragraph marks, formatting and table rows show as in Final.
 - `.doc` files show text only. Some `.doc` files that macOS TextEdit or `textutil` saved at more than about 2.4 MB can't be read and get the could-not-read message.
 - Search finds text inside one formatting run. A word whose letters have mixed formatting may not match.
 - In Markdown, images become placeholder links such as `![](#image-1)` to keep the text small.

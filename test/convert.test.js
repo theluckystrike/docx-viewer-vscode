@@ -33,7 +33,13 @@ test('sample.docx converts with outline, table, image, footnote and link', async
   assert.strictEqual(r.stats.images, 1);
   assert.strictEqual(r.stats.footnotes, 1);
   const html = r.chunks.join('');
-  assert.match(html, /<img src="data:image\/png;base64,/);
+  // Pictures travel as bytes next to the HTML (blob: URLs in the webview), not as base64.
+  assert.match(html, /<img data-dv-img="0" alt="">/);
+  assert.doesNotMatch(html, /base64/);
+  assert.strictEqual(r.images.length, 1);
+  assert.strictEqual(r.images[0].type, 'image/png');
+  assert.ok(r.images[0].data instanceof Uint8Array && r.images[0].data.length > 100);
+  assert.deepStrictEqual([...r.images[0].data.slice(1, 4)], [0x50, 0x4e, 0x47]); // PNG
   assert.match(html, /<a href="https:\/\/example\.com\/q3-report">/);
   assert.match(html, /<td><p>\$13\.1M<\/p><\/td>/);
   assert.match(r.markdown, /\| North \| \$9\.8M \| \$13\.1M \| \+34% \|/);
@@ -105,7 +111,8 @@ test('large generated document converts and chunks', async () => {
   const t0 = Date.now();
   const r = await convertDocx(buf, { maxChunkChars: 50000 });
   assert.ok(r.ok);
-  assert.ok(r.chunks.length > 5, 'chunks: ' + r.chunks.length);
+  assert.ok(r.chunks.length >= 3, 'chunks: ' + r.chunks.length);
+  assert.strictEqual(r.images.length, 80);
   assert.strictEqual(r.outline.length, 7 * 80);
   assert.ok(Date.now() - t0 < 20000);
 });

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.3.0 (2026-11-08)
+
+Fixes found by opening 140 real-world files (Apache POI bug reports, a 47 MB JNCC survey report, gov.uk statistics):
+
+- Equations show as real math in Reading view (fractions, roots, scripts, sums and integrals, brackets, matrices). Copy as Markdown and Open as Text write each one as a line of text.
+- Charts show in Reading view. Column, bar, line, area, pie, doughnut and scatter charts are drawn from the values saved in the file, with a "Chart data" table under each one. Copy as Markdown copies the table.
+- Figure, table and page numbers in simple fields were left out ("Figure ." instead of "Figure 29."). They show now.
+- Big reports open about twice as fast. Pictures go to the viewer as bytes instead of base64 text. The 47 MB test report opens in about 1.5 s instead of 4.1 s, and shows all 41 photos instead of 35.
+- Page view now opens files up to 100 MB (it was 20 MB). The 47 MB report lays out in 0.4 s. Files up to 100 MB open without asking (it was 50 MB). The image limits are now 20 MB per picture and 300 MB per document.
+- An old Word 97-2003 file renamed to `.docx` or `.docm` opens as text. A password-protected `.docx` gets a clear "password protected" message.
+- RTF files saved with a `.doc` name open as text, with their tables. Before, they got a "this is RTF" message.
+- Files whose XML has a DOCTYPE or custom entities open. Tables nested hundreds deep no longer stop the converter.
+- The "conversion notes" list no longer shows Word style names that have no special HTML. Real files had 5 to 10 of these each.
+- New: hide the toolbar for more reading room with the button at its right end or `Ctrl+Shift+H` (`Cmd+Shift+H`), and bring it back the same way. The choice is kept per workspace.
+- New setting `docxViewer.fontFamily` for Reading view: empty (Word-like default), `editor` or a font list.
+- The one-time rating question now comes after 3 files that opened without an error and 1 day. It still asks once, and `docxViewer.askForRating: false` turns it off.
+
 ## 0.2.5 (2026-11-07)
 
 - The Marketplace name is now "DOCX Viewer, Word Viewer & DOCX Preview (Dark Mode)" (it was "DOCX Viewer & Word Viewer with Dark Mode"). The extension id, commands and settings stay the same.

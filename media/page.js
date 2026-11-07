@@ -114,6 +114,7 @@
     let current = -1;
     let loaded = false;
 
+    const setToolbar = P.setupToolbar(doc, vscode);
     function save() { vscode.setState({ theme: state.theme, outlineOpen: state.outlineOpen, query: state.query }); }
     function applyTheme() {
       doc.body.dataset.theme = state.theme;
@@ -249,6 +250,8 @@
       if (!P.validateOutbound(m)) return;
       if (m.type === 'theme') { state.theme = m.theme; applyTheme(); save(); return; }
       if (m.type === 'find') { q.focus(); q.select(); return; }
+      if (m.type === 'toolbar') { setToolbar(m.hidden, false); return; }
+      if (m.type === 'font') return;
       if (m.type === 'zoom') { state.zoom = P.clampZoom(m.zoom); applyZoom(false); return; }
       if (m.type === 'pageNote') {
         $('dv-page-note-text').textContent = m.text;

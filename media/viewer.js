@@ -22,6 +22,26 @@
   const MAX_MARKS = 5000;
 
   function save() { vscode.setState(state); }
+  const setToolbar = P.setupToolbar(document, vscode);
+
+  // docxViewer.fontFamily: '' keeps the Word-like default, 'editor' uses the editor font.
+  function applyFont(f) {
+    doc.style.fontFamily = f === 'editor' ? 'var(--vscode-editor-font-family, monospace)' : (f || '');
+  }
+  applyFont(document.body.dataset.font || '');
+
+  // Pictures arrive as bytes next to the HTML; each becomes a blob: URL.
+  let imageUrls = [];
+  function setImages(list) {
+    imageUrls.forEach(function (u) { URL.revokeObjectURL(u); });
+    imageUrls = list.map(function (im) { return URL.createObjectURL(new Blob([im.data], { type: im.type })); });
+  }
+  function bindImages(root) {
+    root.querySelectorAll('img[data-dv-img]').forEach(function (img) {
+      const u = imageUrls[Number(img.getAttribute('data-dv-img'))];
+      if (u) img.src = u;
+    });
+  }
 
   function applyTheme() {
     document.body.dataset.theme = state.theme;
@@ -70,6 +90,7 @@
   function appendChunk(html) {
     const tpl = document.createElement('template');
     tpl.innerHTML = html; // sanitized by src/html.js in the extension host; CSP blocks scripts anyway
+    bindImages(tpl.content);
     doc.appendChild(tpl.content);
     if (doc.hidden) { doc.hidden = false; statusEl.hidden = true; }
   }
@@ -233,7 +254,8 @@
     state.query = query;
     save();
     if (!query) { countEl.textContent = ''; return; }
-    const walker = document.createTreeWalker(doc, NodeFilter.SHOW_TEXT);
+    // Text inside SVG charts and MathML equations is left alone: a <mark> there would not draw.
+    const walker = document.createTreeWalker(doc, NodeFilter.SHOW_TEXT, { acceptNode: function (n) { return n.parentNode && n.parentNode.closest && n.parentNode.closest('svg, math') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT; } });
     const nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
     for (let i = 0; i < nodes.length && marks.length < MAX_MARKS; i++) {
@@ -306,6 +328,7 @@
         if (m.banner) renderBanner(m.banner, m.bannerActions || []);
         if (m.revisions) renderRevisions(m.revisions);
         break;
+      case 'images': setImages(m.list); break;
       case 'chunk': appendChunk(m.html); break;
       case 'end':
         loaded = true;
@@ -320,6 +343,8 @@
       case 'theme': state.theme = m.theme; applyTheme(); save(); break;
       case 'zoom': state.zoom = P.clampZoom(m.zoom); applyZoom(false); break;
       case 'find': focusSearch(); break;
+      case 'toolbar': setToolbar(m.hidden, false); break;
+      case 'font': applyFont(m.font); break;
     }
   });
   vscode.postMessage({ type: 'ready' });

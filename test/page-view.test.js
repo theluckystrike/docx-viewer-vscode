@@ -86,10 +86,10 @@ test('Page view CSP: unsafe-inline only for styles, no network, no http sources;
   const own = W.pageCsp('vscode-resource:', 'N');
   assert.ok(!/https?:/.test(own), own);
   assert.ok(!/<style nonce/.test(html), 'a style nonce would switch unsafe-inline off');
-  // Reading view: same CSP string as 0.2.x.
+  // Reading view: the 0.2.x CSP plus blob: images (pictures arrive as bytes since 0.3.0).
   const reading = W.buildWebviewHtml({ cspSource: 'vscode-resource:', uris: { css: 'a', protocol: 'b', search: 'c', viewer: 'd' }, nonce: 'N', pageAvailable: true });
-  assert.ok(reading.includes(`content="default-src 'none'; img-src data: vscode-resource:; style-src vscode-resource: 'nonce-N'; font-src vscode-resource:; script-src 'nonce-N'; connect-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'"`.replace(/'/g, '&#39;')) ||
-    reading.includes(`content="default-src 'none'; img-src data: vscode-resource:; style-src vscode-resource: 'nonce-N'; font-src vscode-resource:; script-src 'nonce-N'; connect-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'"`));
+  assert.ok(reading.includes(`content="default-src 'none'; img-src blob: data: vscode-resource:; style-src vscode-resource: 'nonce-N'; font-src vscode-resource:; script-src 'nonce-N'; connect-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'"`.replace(/'/g, '&#39;')) ||
+    reading.includes(`content="default-src 'none'; img-src blob: data: vscode-resource:; style-src vscode-resource: 'nonce-N'; font-src vscode-resource:; script-src 'nonce-N'; connect-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'"`));
   assert.match(reading, /data-cmd="showPage"/);
   assert.ok(!/data-cmd="showPage"/.test(W.buildWebviewHtml({ cspSource: 'x', uris: { css: 'a', protocol: 'b', search: 'c', viewer: 'd' } })), 'no Page view button for .odt and .doc');
 });

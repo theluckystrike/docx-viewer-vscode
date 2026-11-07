@@ -30,14 +30,33 @@ function isLegacyExt(ext) {
   return ext === '.doc' || ext === '.dot';
 }
 
-// True when the converter (worker) can open these bytes: any ZIP package, or an OLE file named .doc/.dot.
-function canConvert(format, ext) {
-  return format === 'zip' || (format === 'ole' && isLegacyExt(ext));
+// What an OLE (Compound File) container holds, from the UTF-16 stream names in its directory:
+// 'encrypted' (a password-protected .docx: EncryptedPackage + EncryptionInfo), 'doc' (a Word
+// 97-2003 file: WordDocument stream) or 'other'.
+const U16 = (s) => Buffer.from(s, 'utf16le');
+const ENCRYPTED_PACKAGE = U16('EncryptedPackage');
+const WORD_DOCUMENT = U16('WordDocument');
+function oleKind(buf) {
+  if (!buf || !buf.length) return 'other';
+  const b = Buffer.isBuffer(buf) ? buf : Buffer.from(buf.buffer || buf, buf.byteOffset || 0, buf.byteLength);
+  if (b.indexOf(ENCRYPTED_PACKAGE) !== -1) return 'encrypted';
+  if (b.indexOf(WORD_DOCUMENT) !== -1) return 'doc';
+  return 'other';
+}
+
+// True when the converter (worker) can open these bytes: any ZIP package, a Word 97-2003 file under
+// any Word name (an old .doc renamed to .docx is common), or RTF saved under a .doc name.
+function canConvert(format, ext, bytes) {
+  if (format === 'zip') return true;
+  if (format === 'ole') return isLegacyExt(ext) || (bytes ? oleKind(bytes) === 'doc' : false);
+  if (format === 'rtf') return isLegacyExt(ext);
+  return false;
 }
 
 // A user-facing notice for files we will not render. ext is like ".doc".
-function noticeFor(format, ext) {
+function noticeFor(format, ext, bytes) {
   if (format === 'ole') {
+    if (bytes && oleKind(bytes) === 'encrypted') return ENCRYPTED_DOCX;
     if (isLegacyExt(ext)) {
       return { kind: 'legacyDoc', title: 'This is an old Word file (' + ext + ')', detail: 'DOCX Viewer shows the text of Word 97-2003 files. Open it in Word, LibreOffice or Pages and save it as .docx to see the formatting too.' };
     }
@@ -53,7 +72,10 @@ function noticeFor(format, ext) {
   return null;
 }
 
+// Notice for a password-protected .docx (Word stores it in an encrypted OLE container).
+const ENCRYPTED_DOCX = { kind: 'encrypted', title: 'This document is password protected', detail: 'Word encrypted this file with a password, so DOCX Viewer cannot read it. Open it in Word, remove the password (File > Info > Protect Document) and save it again, then open it here.' };
+
 // Notice for a password-protected .doc file (the FIB says the streams are encrypted).
 const ENCRYPTED_DOC = { kind: 'encrypted', title: 'This .doc file is password protected', detail: 'Word encrypted the text of this file. DOCX Viewer cannot read it. Open it in Word, remove the password and save it again, then open it here.' };
 
-module.exports = { detectFormat, noticeFor, canConvert, isLegacyExt, ENCRYPTED_DOC };
+module.exports = { detectFormat, noticeFor, canConvert, isLegacyExt, oleKind, ENCRYPTED_DOC, ENCRYPTED_DOCX };

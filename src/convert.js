@@ -6,13 +6,15 @@ const mammoth = require('mammoth');
 const JSZip = require('jszip');
 const { convertOdt, odfKind } = require('./odt');
 const H = require('./html');
-const { detectFormat, noticeFor, isLegacyExt, ENCRYPTED_DOC } = require('./detect');
+const { detectFormat, noticeFor, isLegacyExt, oleKind, ENCRYPTED_DOC } = require('./detect');
 const LegacyDoc = require('./doc');
 const Rev = require('./revisions');
+const Prep = require('./prep');
+const { rtfToText, tabBlocksToRows } = require('./rtf');
 
 const DEFAULTS = {
-  maxImageBytes: 5 * 1024 * 1024,
-  maxTotalImageBytes: 40 * 1024 * 1024,
+  maxImageBytes: 20 * 1024 * 1024,
+  maxTotalImageBytes: 300 * 1024 * 1024,
   maxChunkChars: 200000
 };
 
@@ -49,8 +51,33 @@ function makeImageConverter(opts, stats) {
       return { src: '', 'data-dv-skipped': 'the document is over the ' + H.formatBytes(opts.maxTotalImageBytes) + ' total image limit' };
     }
     stats.totalBytes += buf.length;
-    return { src: 'data:' + (type === 'image/jpg' ? 'image/jpeg' : type) + ';base64,' + Buffer.from(buf).toString('base64') };
+    // The bytes travel next to the HTML and become a blob: URL in the webview. Base64 inside the
+    // HTML made big reports slow: 40 MB of pictures meant a 55 MB string to sanitize and post.
+    const copy = new Uint8Array(buf.length);
+    copy.set(buf);
+    stats.list.push({ type: type === 'image/jpg' ? 'image/jpeg' : type, data: copy });
+    return { src: 'dv-img:' + (stats.list.length - 1) };
   });
+}
+
+// Mammoth warnings that only mean "a Word style has no special HTML": every real file has dozens.
+const NOISE = /^(Unrecognised (paragraph|run|table|numbering) style|An unrecognised element was ignored|Image of type image\/x-(emf|wmf) is unlikely|(Paragraph|Run|Table|Numbering) style with ID .* was referenced but not defined)/;
+
+// XML parts that declare a DOCTYPE or custom entities (Word never writes them; some generators do)
+// make mammoth's XML reader fail. Remove the DOCTYPE and unknown entity references, then retry.
+const DOCTYPE = /<!DOCTYPE[^>\[]*(\[[\s\S]*?\])?\s*>/g;
+async function stripDoctypes(buffer) {
+  const zip = await JSZip.loadAsync(buffer);
+  let changed = false;
+  for (const name of Object.keys(zip.files)) {
+    if (!/\.(xml|rels)$/i.test(name) || zip.files[name].dir) continue;
+    const xml = await zip.file(name).async('string');
+    if (xml.indexOf('<!DOCTYPE') === -1) continue;
+    const clean = xml.replace(DOCTYPE, '').replace(/&(?!(amp|lt|gt|quot|apos|#[0-9]+|#x[0-9a-fA-F]+);)[A-Za-z_][\w.-]*;/g, '');
+    zip.file(name, clean);
+    changed = true;
+  }
+  return changed ? zip.generateAsync({ type: 'nodebuffer', compression: 'STORE' }) : null;
 }
 
 // buf: Buffer/Uint8Array of a .docx. Returns a plain, structured-clone-safe object.
@@ -59,8 +86,9 @@ async function convertDocx(buf, options) {
   const t0 = Date.now();
   const buffer = Buffer.isBuffer(buf) ? buf : Buffer.from(buf.buffer || buf, buf.byteOffset || 0, buf.byteLength);
   const format = detectFormat(buffer);
-  if (format === 'ole' && isLegacyExt(opts.ext || '')) return convertLegacyDoc(buffer, opts, t0);
-  if (format !== 'zip') return { ok: false, notice: noticeFor(format, opts.ext || '') };
+  if (format === 'ole' && (isLegacyExt(opts.ext || '') || oleKind(buffer) === 'doc')) return convertLegacyDoc(buffer, opts, t0);
+  if (format === 'rtf' && isLegacyExt(opts.ext || '')) return convertRtf(buffer, opts, t0);
+  if (format !== 'zip') return { ok: false, notice: noticeFor(format, opts.ext || '', buffer) };
   // OpenDocument packages are ZIP files too. Their first entry is an uncompressed "mimetype" file,
   // so a .docx skips the extra ZIP read. .odt/.ott files are always checked in full.
   const odfHint = buffer.length > 38 && buffer.toString('latin1', 30, 38) === 'mimetype';
@@ -91,6 +119,7 @@ async function convertDocx(buf, options) {
   let changeTable = null;
   let comments = null;
   let docZip = null;
+  let prep = null;
   try { docZip = await JSZip.loadAsync(buffer); } catch (_) { docZip = null; } // mammoth reports the error below
   const docPart = docZip && docZip.file('word/document.xml');
   const commentsPart = docZip && docZip.file('word/comments.xml');
@@ -117,17 +146,46 @@ async function convertDocx(buf, options) {
         comments = { info: Rev.commentInfo(commentsXml), count: summary.comments };
       }
     }
+    // Equations, charts and simple fields (see src/prep.js). Works on the XML after the
+    // tracked-changes rewrite, so Markup and Original views get them too.
+    const currentXml = input === buffer ? documentXml : await docZip.file('word/document.xml').async('string');
+    let rewritten = false;
+    if (Prep.needsPrep(currentXml)) {
+      const relsPart = docZip.file('word/_rels/document.xml.rels');
+      const relsXml = relsPart ? await relsPart.async('string') : '';
+      const readPart = async (name) => { const f = docZip.file(name); return f ? f.async('string') : null; };
+      prep = await Prep.prepare(currentXml, readPart, relsXml);
+      if (prep.xml !== currentXml) { docZip.file('word/document.xml', prep.xml); rewritten = true; }
+    }
+    for (const part of ['word/footnotes.xml', 'word/endnotes.xml']) {
+      const f = docZip.file(part);
+      if (!f) continue;
+      const xml = await f.async('string');
+      const clean = Prep.unwrapFldSimple(xml);
+      if (clean !== xml) { docZip.file(part, clean); rewritten = true; }
+    }
+    if (rewritten) input = await docZip.generateAsync({ type: 'nodebuffer', compression: 'STORE' });
   }
   docZip = null;
-  const imgStats = { totalBytes: 0, skipped: 0 };
+  const imgStats = { totalBytes: 0, skipped: 0, list: [] };
+  const mammothOptions = {
+    styleMap,
+    convertImage: makeImageConverter(opts, imgStats),
+    includeDefaultStyleMap: true,
+    ignoreEmptyParagraphs: true
+  };
   let result;
   try {
-    result = await mammoth.convertToHtml({ buffer: input }, {
-      styleMap,
-      convertImage: makeImageConverter(opts, imgStats),
-      includeDefaultStyleMap: true,
-      ignoreEmptyParagraphs: true
-    });
+    try {
+      result = await mammoth.convertToHtml({ buffer: input }, mammothOptions);
+    } catch (err) {
+      if (!/entity|DOCTYPE/i.test(String((err && err.message) || err))) throw err;
+      const clean = await stripDoctypes(input);
+      if (!clean) throw err;
+      imgStats.list.length = 0;
+      imgStats.totalBytes = 0;
+      result = await mammoth.convertToHtml({ buffer: clean }, mammothOptions);
+    }
   } catch (err) {
     const msg = String((err && err.message) || err);
     const corrupt = /end of central directory|corrupted zip|Can't find end|Could not find file in options|word\/document\.xml|is this a zip/i.test(msg);
@@ -145,7 +203,8 @@ async function convertDocx(buf, options) {
     if (!seen.has(text) && warnings.length < 50) { seen.add(text); warnings.push(text); }
   }
   const html = comments ? labelComments(result.value, comments) : result.value;
-  const r = finish(html, warnings.filter((w) => !/Zovo(Ins|Del)\d/.test(w)), opts, t0, 'docx');
+  const r = finish(html, warnings.filter((w) => !/Zovo(Ins|Del)\d/.test(w) && !NOISE.test(w)), opts, t0, 'docx', prep);
+  if (imgStats.list.length) r.images = imgStats.list;
   if (summary) r.revisions = { changes: summary.changes, comments: summary.comments, authors: summary.authors.slice(0, 20), label: Rev.label(summary), mode };
   if (changeTable && Object.keys(changeTable).length) r.changeTable = changeTable;
   return r;
@@ -176,14 +235,30 @@ async function convertLegacyDoc(buffer, opts, t0) {
   }
   const { html } = LegacyDoc.docToHtml(d);
   const r = finish(html, [], opts, t0, 'doc');
-  r.banner = LegacyDoc.BANNER;
+  r.banner = isLegacyExt(opts.ext || '.doc') ? LegacyDoc.BANNER : 'This is an old Word 97-2003 file with a ' + opts.ext + ' name. Text only: formatting, images and layout are not shown.';
+  r.bannerActions = ['openInDefaultApp'];
+  return r;
+}
+
+// RTF saved under a .doc name: text, paragraphs and tables.
+const RTF_BANNER = 'This file is Rich Text Format (RTF) under a Word name. Text only: formatting, images and layout are not shown.';
+async function convertRtf(buffer, opts, t0) {
+  let text;
+  try {
+    text = rtfToText(buffer);
+  } catch (err) {
+    return { ok: false, notice: noticeFor('rtf', opts.ext || '.doc') };
+  }
+  const r = finish(LegacyDoc.textToHtml(tabBlocksToRows(text)), [], opts, t0, 'rtf');
+  r.banner = RTF_BANNER;
   r.bannerActions = ['openInDefaultApp'];
   return r;
 }
 
 // Shared by .docx, .odt and .doc: sanitize the converter HTML and derive chunks, outline, Markdown and text.
-function finish(rawHtml, warnings, opts, t0, format) {
+function finish(rawHtml, warnings, opts, t0, format, prep) {
   const clean = H.sanitize(H.parse(rawHtml));
+  const items = prep ? H.injectItems(clean.tree, prep.items, prep.tag) : { equations: 0, charts: 0 };
   const chunks = H.chunkBlocks(clean.tree, opts.maxChunkChars);
   const text = H.toPlainText(clean.tree);
   return {
@@ -201,6 +276,8 @@ function finish(rawHtml, warnings, opts, t0, format) {
       skippedImages: clean.skippedImages,
       footnotes: clean.footnotes,
       tables: (rawHtml.match(/<table/g) || []).length,
+      equations: items.equations,
+      charts: items.charts,
       htmlChars: chunks.reduce((n, c) => n + c.length, 0),
       ms: Date.now() - t0
     }

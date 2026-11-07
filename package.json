@@ -1,8 +1,8 @@
 {
   "name": "docx-viewer-vscode",
   "displayName": "DOCX Viewer, Word Viewer & DOCX Preview (Dark Mode)",
-  "description": "DOCX viewer and Word viewer for VS Code that opens .docx and .odt files as a read-only preview with dark mode, an outline, search, tables and a Git compare, all offline.",
-  "version": "0.2.5",
+  "description": "DOCX viewer and Word viewer for VS Code: open .docx, .odt and old .doc files as a read-only preview with dark mode, Page view, equations, charts, search, an outline and a Git compare, all offline.",
+  "version": "0.3.0",
   "publisher": "zovo",
   "license": "MIT",
   "icon": "icon.png",
@@ -30,7 +30,7 @@
     "docx",
     "docx viewer",
     "word viewer",
-    "word",
+    "doc viewer",
     "ms word",
     "microsoft word",
     "word document",
@@ -45,7 +45,7 @@
     "dotx",
     "docm",
     "doc",
-    "dark mode",
+    "word reader",
     "outline",
     "search",
     "docx to markdown",
@@ -54,7 +54,7 @@
     "footnotes",
     "tables",
     "docx diff",
-    "viewer",
+    "docx reader",
     "odt",
     "odt viewer"
   ],
@@ -146,6 +146,11 @@
         "category": "DOCX Viewer"
       },
       {
+        "command": "docxViewer.toggleToolbar",
+        "title": "Show or Hide the Toolbar",
+        "category": "DOCX Viewer"
+      },
+      {
         "command": "docxViewer.openWalkthrough",
         "title": "Get Started",
         "category": "DOCX Viewer"
@@ -166,6 +171,12 @@
         "command": "docxViewer.find",
         "key": "ctrl+f",
         "mac": "cmd+f",
+        "when": "activeCustomEditorId == 'docxViewer.preview'"
+      },
+      {
+        "command": "docxViewer.toggleToolbar",
+        "key": "ctrl+shift+h",
+        "mac": "cmd+shift+h",
         "when": "activeCustomEditorId == 'docxViewer.preview'"
       }
     ],
@@ -228,6 +239,10 @@
         {
           "command": "docxViewer.find",
           "when": "activeCustomEditorId == 'docxViewer.preview'"
+        },
+        {
+          "command": "docxViewer.toggleToolbar",
+          "when": "activeCustomEditorId == 'docxViewer.preview'"
         }
       ],
       "scm/resourceState/context": [
@@ -276,27 +291,32 @@
           "maximum": 3,
           "description": "Zoom for both views, from 0.5 (50%) to 3 (300%). Ctrl+= and Ctrl+- (Cmd on macOS) change it in the viewer."
         },
+        "docxViewer.fontFamily": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Font for Reading view. Leave empty for the Word-like default (Calibri or a close match), write `editor` to use your editor font, or give a font list such as `Georgia, serif`. Page view always uses the fonts of the document."
+        },
         "docxViewer.pageViewMaxMB": {
           "type": "number",
-          "default": 20,
+          "default": 100,
           "minimum": 1,
           "description": "Files larger than this open in Reading view, with a button to try Page view anyway. Page view needs more memory for big files."
         },
         "docxViewer.maxFileSizeMB": {
           "type": "number",
-          "default": 50,
+          "default": 100,
           "minimum": 1,
           "description": "Files larger than this ask before they open, so VS Code stays responsive."
         },
         "docxViewer.maxImageSizeMB": {
           "type": "number",
-          "default": 5,
+          "default": 20,
           "minimum": 0.1,
           "description": "Images larger than this are replaced by a short placeholder."
         },
         "docxViewer.maxTotalImagesMB": {
           "type": "number",
-          "default": 40,
+          "default": 300,
           "minimum": 1,
           "description": "After this many MB of images in one document, further images are replaced by placeholders."
         },

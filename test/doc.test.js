@@ -94,12 +94,14 @@ test('password-protected .doc gives the password notice', async () => {
   assert.match(r.notice.title, /password protected/);
 });
 
-test('RTF and HTML files named .doc get their own notice; a renamed .docx opens as .docx', async () => {
+test('RTF named .doc opens as text, HTML named .doc gets its own notice; a renamed .docx opens as .docx', async () => {
   assert.strictEqual(detectFormat(fx('rtf-as.doc')), 'rtf');
   assert.strictEqual(detectFormat(fx('html-as.doc')), 'html');
   const rtf = await convertDocx(fx('rtf-as.doc'), { ext: '.doc' });
-  assert.strictEqual(rtf.ok, false);
-  assert.strictEqual(rtf.notice.title, 'This .doc file is really an RTF file');
+  assert.strictEqual(rtf.ok, true);
+  assert.strictEqual(rtf.format, 'rtf');
+  assert.match(rtf.banner, /Rich Text Format/);
+  assert.deepStrictEqual(rtf.bannerActions, ['openInDefaultApp']);
   const html = await convertDocx(fx('html-as.doc'), { ext: '.doc' });
   assert.strictEqual(html.notice.title, 'This .doc file is really an HTML file');
   assert.strictEqual(noticeFor('html', '.docx').title, 'This is not a Word .docx file');

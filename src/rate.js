@@ -5,10 +5,10 @@
 
 const STATE_KEY = 'zovo.rating.v1';
 const DAY_MS = 24 * 60 * 60 * 1000;
-const FIRST_ASK = 5; // successes before the first ask
+const FIRST_ASK = 3; // files opened without an error before the first ask
 const LATER_STEP = 20; // more successes before asking again after "Later"
 const MAX_LATER = 2; // asks after the first one, at most (3 in all)
-const MIN_DAYS = 2; // days since first use before the first ask
+const MIN_DAYS = 1; // days since first use before the first ask
 const RATE = 'Rate it';
 const LATER = 'Later';
 const NEVER = "Don't ask again";

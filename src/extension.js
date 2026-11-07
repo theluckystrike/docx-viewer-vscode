@@ -3,7 +3,7 @@ const vscode = require('vscode');
 const path = require('path');
 const { convertInWorker } = require('./run-worker');
 const { noticeFor, detectFormat, canConvert } = require('./detect');
-const { buildWebviewHtml, buildPageHtml } = require('./webview-html');
+const { buildWebviewHtml, buildPageHtml, fontAttr } = require('./webview-html');
 const P = require('../media/protocol');
 const { createRatingPrompt } = require('./rate');
 const { registerSupport, commandUris, showLinks } = require('./support');
@@ -19,13 +19,14 @@ function cfg() {
   const c = vscode.workspace.getConfiguration('docxViewer');
   const num = (k, d, min) => { const v = Number(c.get(k, d)); return Number.isFinite(v) && v >= min ? v : d; };
   return {
-    maxFileBytes: num('maxFileSizeMB', 50, 1) * MB,
-    maxImageBytes: num('maxImageSizeMB', 5, 0.1) * MB,
-    maxTotalImageBytes: num('maxTotalImagesMB', 40, 1) * MB,
+    maxFileBytes: num('maxFileSizeMB', 100, 1) * MB,
+    maxImageBytes: num('maxImageSizeMB', 20, 0.1) * MB,
+    maxTotalImageBytes: num('maxTotalImagesMB', 300, 1) * MB,
+    font: typeof c.get('fontFamily') === 'string' ? c.get('fontFamily') : '',
     theme: P.THEMES.includes(c.get('theme')) ? c.get('theme') : 'auto',
     defaultView: P.VIEWS.includes(c.get('defaultView')) ? c.get('defaultView') : 'reading',
     zoom: P.clampZoom(c.get('zoom', 1)),
-    pageMaxBytes: num('pageViewMaxMB', 20, 1) * MB
+    pageMaxBytes: num('pageViewMaxMB', 100, 1) * MB
   };
 }
 
@@ -33,6 +34,7 @@ function cfg() {
 const PAGE_EXT = /\.(docx|dotx|docm)$/i;
 const VIEW_KEY = 'docxViewer.view';
 const ZOOM_KEY = 'docxViewer.zoom';
+const TOOLBAR_KEY = 'docxViewer.toolbarHidden';
 function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
 function pageNoteText(rev) {
   const parts = [];
@@ -91,7 +93,8 @@ class DocxEditorProvider {
   setView(panel, document, view) {
     const media = vscode.Uri.joinPath(this.context.extensionUri, 'media');
     const u = (f) => panel.webview.asWebviewUri(vscode.Uri.joinPath(media, f)).toString();
-    const common = { cspSource: panel.webview.cspSource, theme: cfg().theme, zoom: this.zoom(), showSupportLinks: showLinks(vscode, 'docxViewer') };
+    const ws = this.context.workspaceState;
+    const common = { cspSource: panel.webview.cspSource, theme: cfg().theme, zoom: this.zoom(), showSupportLinks: showLinks(vscode, 'docxViewer'), toolbarHidden: !!(ws && ws.get(TOOLBAR_KEY)), font: cfg().font };
     this.views.set(panel, view);
     panel.webview.html = view === 'page'
       ? buildPageHtml({ ...common, uris: { css: u('viewer.css'), protocol: u('protocol.js'), search: u('search.js'), pageView: u('page-view.js'), page: u('page.js') } })
@@ -148,6 +151,7 @@ class DocxEditorProvider {
       return;
     }
     if (m.type === 'pageRendered') { this.lastPageRender = m; return; }
+    if (m.type === 'setToolbar') return this.setToolbar(m.hidden, panel);
     if (m.type === 'pageFailed') {
       this.notes.set(panel, { text: NOTES.failed, actions: [] });
       return this.switchView(panel, document, 'reading', false);
@@ -166,6 +170,17 @@ class DocxEditorProvider {
       case 'revFinal': document.revMode = 'final'; return this.render(panel, document);
       case 'revOriginal': document.revMode = 'original'; return this.render(panel, document);
     }
+  }
+
+  // Hidden or shown toolbar, kept per workspace and applied to every open viewer.
+  async setToolbar(hidden, from) {
+    if (this.context.workspaceState) await this.context.workspaceState.update(TOOLBAR_KEY, hidden);
+    for (const p of this.panels.keys()) if (p !== from) p.webview.postMessage({ type: 'toolbar', hidden });
+  }
+
+  toggleToolbar() {
+    const ws = this.context.workspaceState;
+    return this.setToolbar(!(ws && ws.get(TOOLBAR_KEY)), null);
   }
 
   meta(document, size) {
@@ -191,7 +206,7 @@ class DocxEditorProvider {
       }
       const bytes = await vscode.workspace.fs.readFile(document.uri);
       const format = detectFormat(bytes);
-      if (!canConvert(format, ext)) return { ok: false, size, notice: noticeFor(format, ext) };
+      if (!canConvert(format, ext, bytes)) return { ok: false, size, notice: noticeFor(format, ext, bytes) };
       const r = await convertInWorker(bytes, { ext, maxImageBytes: c.maxImageBytes, maxTotalImageBytes: c.maxTotalImageBytes });
       r.size = size;
       return r;
@@ -299,7 +314,7 @@ async function convertBytes(bytes, name) {
   const c = cfg();
   const ext = path.extname(name).toLowerCase();
   const format = detectFormat(bytes);
-  if (!canConvert(format, ext)) return { ok: false, notice: noticeFor(format, ext) || { kind: 'error', title: 'Unknown format', detail: '' } };
+  if (!canConvert(format, ext, bytes)) return { ok: false, notice: noticeFor(format, ext, bytes) || { kind: 'error', title: 'Unknown format', detail: '' } };
   return convertInWorker(bytes, { ext, maxImageBytes: c.maxImageBytes, maxTotalImageBytes: c.maxTotalImageBytes });
 }
 
@@ -366,6 +381,7 @@ function activate(context) {
       const p = provider.active || [...provider.panels.keys()].find((x) => x.visible);
       if (p) p.webview.postMessage({ type: 'find' });
     }),
+    vscode.commands.registerCommand('docxViewer.toggleToolbar', () => provider.toggleToolbar()),
     vscode.commands.registerCommand('docxViewer.openSample', () => {
       const uri = vscode.Uri.joinPath(context.extensionUri, 'media', 'sample', 'Q3 Field Report.docx');
       return vscode.commands.executeCommand('vscode.openWith', uri, VIEW_TYPE);
@@ -375,6 +391,9 @@ function activate(context) {
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration('docxViewer.theme')) {
         for (const p of provider.panels.keys()) p.webview.postMessage({ type: 'theme', theme: cfg().theme });
+      }
+      if (e.affectsConfiguration('docxViewer.fontFamily')) {
+        for (const p of provider.panels.keys()) p.webview.postMessage({ type: 'font', font: fontAttr(cfg().font) });
       }
       if (e.affectsConfiguration('docxViewer.zoom')) {
         for (const p of provider.panels.keys()) p.webview.postMessage({ type: 'zoom', zoom: cfg().zoom });

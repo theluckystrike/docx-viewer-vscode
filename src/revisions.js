@@ -23,7 +23,7 @@ function hasChanges(documentXml) {
 }
 
 function parseXml(xml) {
-  return new DOMParser({ onError: () => {} }).parseFromString(xml, 'text/xml');
+  return new DOMParser({ errorHandler: { warning() {}, error() {}, fatalError() {} }, onError: () => {} }).parseFromString(xml, 'text/xml');
 }
 
 // Run-level change elements in document order. w:ins / w:del inside w:rPr mark a changed paragraph

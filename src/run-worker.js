@@ -10,7 +10,9 @@ function convertInWorker(bytes, opts, limits) {
   const workerFile = (limits && limits.workerFile) || path.join(__dirname, 'worker.js');
   return new Promise((resolve) => {
     let done = false;
-    const worker = new Worker(workerFile, { resourceLimits: { maxOldGenerationSizeMb } });
+    // A bigger stack than the 4 MB default: tables nested hundreds deep (seen in real files) made
+    // the XML reader overflow it.
+    const worker = new Worker(workerFile, { resourceLimits: { maxOldGenerationSizeMb, stackSizeMb: (limits && limits.stackSizeMb) || 64 } });
     const finish = (value) => {
       if (done) return;
       done = true;

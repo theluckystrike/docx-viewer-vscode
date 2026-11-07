@@ -188,3 +188,36 @@ body.vscode-high-contrast:not(.vscode-high-contrast-light)[data-theme="auto"] .d
 .dv-page sup a[href^="#d-comment-"] { font-size: 0.75em; padding: 0 2px; border-radius: 2px; background: color-mix(in srgb, #e08a00 25%, transparent); text-decoration: none; }
 .dv-page dl dt { font-weight: 600; margin-top: 12px; }
 .dv-page dl dd { margin: 4px 0 0 16px; }
+
+/* ---------- toolbar hide / show ---------- */
+.dv-bar-show { display: none; position: fixed; top: 4px; right: 8px; z-index: 20; opacity: 0.75; padding: 1px 8px; }
+.dv-bar-show:hover, .dv-bar-show:focus-visible { opacity: 1; }
+body[data-bar="hidden"] .dv-bar { display: none; }
+body[data-bar="hidden"] .dv-bar-show { display: block; }
+
+/* ---------- equations (MathML) ---------- */
+.dv-page math { font-size: 1.1em; font-family: "Cambria Math", "STIX Two Math", "Latin Modern Math", math; }
+/* Word draws fractions and limits full size inside equation arrays and matrices. */
+.dv-page math[display="block"] * { math-style: normal; }
+.dv-page p.dv-eq { text-align: center; overflow-x: auto; overflow-y: hidden; padding: 4px 0; margin: 0.6em 0 1em; font-size: 1.15em; }
+.dv-page math[display="block"] { display: block math; }
+
+/* ---------- charts (SVG from the values stored in the file) ---------- */
+.dv-chart { margin: 0.8em 0 1.2em; padding: 0; }
+.dv-chart figcaption { font-weight: 600; text-align: center; margin-bottom: 4px; }
+.dv-chart-svg { display: block; width: 100%; max-width: 640px; height: auto; margin: 0 auto; }
+.dv-chart-inline .dv-chart-svg { display: inline-block; max-width: 360px; vertical-align: middle; }
+.dv-chart-grid { stroke: var(--dv-table-border); stroke-width: 0.5; }
+.dv-chart-axis { stroke: var(--dv-page-fg); stroke-width: 1; opacity: 0.6; }
+.dv-chart-label { fill: var(--dv-page-fg); font-size: 11px; opacity: 0.85; }
+.dv-chart-line { fill: none; stroke-width: 2; }
+.dv-chart-area { opacity: 0.55; }
+.dv-chart-slice { stroke: var(--dv-page-bg); stroke-width: 1; }
+.dv-chart-hole { fill: var(--dv-page-bg); }
+.dv-s1 { fill: #4472c4; stroke: #4472c4; } .dv-s2 { fill: #ed7d31; stroke: #ed7d31; } .dv-s3 { fill: #a5a5a5; stroke: #a5a5a5; } .dv-s4 { fill: #ffc000; stroke: #ffc000; }
+.dv-s5 { fill: #5b9bd5; stroke: #5b9bd5; } .dv-s6 { fill: #70ad47; stroke: #70ad47; } .dv-s7 { fill: #264478; stroke: #264478; } .dv-s8 { fill: #9e480e; stroke: #9e480e; }
+polyline.dv-chart-line { fill: none; }
+.dv-chart-details { margin-top: 4px; font-size: 0.9em; color: var(--dv-muted); }
+.dv-chart-details summary { cursor: pointer; }
+.dv-page table.dv-chart-data th { background: var(--dv-table-head); font-weight: 600; text-align: left; }
+.dv-page table.dv-chart-data td { text-align: right; font-variant-numeric: tabular-nums; }

@@ -27,16 +27,16 @@ test('rating: first success stores the date and the session', () => {
   assert.equal(s2.firstSession, 's1');
 });
 
-test('rating: asks after the 5th success, not before', () => {
-  assert.equal(R.decide(successes(4), env()), false);
-  assert.equal(R.decide(successes(5), env()), true);
+test('rating: asks after the 3rd file opened without an error, not before', () => {
+  assert.equal(R.decide(successes(2), env()), false);
+  assert.equal(R.decide(successes(3), env()), true);
 });
 
-test('rating: waits 2 days after first use', () => {
+test('rating: waits 1 day after first use', () => {
   const s = successes(10);
-  assert.equal(R.decide(s, env({ now: T0 + DAY })), false);
-  assert.equal(R.decide(s, env({ now: T0 + 2 * DAY - 1 })), false);
-  assert.equal(R.decide(s, env({ now: T0 + 2 * DAY })), true);
+  assert.equal(R.decide(s, env({ now: T0 + DAY / 2 })), false);
+  assert.equal(R.decide(s, env({ now: T0 + DAY - 1 })), false);
+  assert.equal(R.decide(s, env({ now: T0 + DAY })), true);
 });
 
 test('rating: never in the first session, once per session, focus, trust and remote', () => {
