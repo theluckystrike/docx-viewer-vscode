@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.3 (2026-11-07)
+
+- Page view. A "Page view" button shows the document the way Word lays it out, with page size, margins, portrait and landscape pages, headers, footers, fonts and colors. "Reading view" switches back, and the choice is kept per workspace. New setting `docxViewer.defaultView`.
+- Zoom from 50% to 300% in both views, with buttons and `Ctrl+=`, `Ctrl+-` and `Ctrl+0` (`Cmd` on macOS), plus "Fit width" in Page view. New setting `docxViewer.zoom`.
+- In a dark theme the pages turn dark and photos and charts keep their colors. Files over 20 MB open in Reading view first (`docxViewer.pageViewMaxMB`). If a file can't be laid out, it opens in Reading view with a note.
+- Tracked changes and comments in Reading view, read-only. A bar counts changes, people and comments and switches between Markup, Final and Original. Each author gets a color, and hovering a change shows who made it and when. Comments show as numbered markers and a Comments section. Copy as Markdown, Open as Text and Compare stay on Final.
+- Old Word 97-2003 `.doc` and `.dot` files open as text, with tables, search, Copy as Markdown, Open as Text and both compare commands. Password-protected ones, and RTF or HTML files with a `.doc` name, get a short message with "Open in default app".
+- The build checks the license of every bundled package. New third-party code: docx-preview (Apache-2.0) and word-extractor (MIT), listed in THIRD-PARTY-NOTICES.md.
+
 ## 0.2.2 (2026-11-07)
 
 - The footer under the viewer has a "Rate" link next to Sponsor and More free viewers. It opens the review page of this extension on the Marketplace. Nothing pops up and nothing asks you for a rating. "Hide" still hides the whole line.
