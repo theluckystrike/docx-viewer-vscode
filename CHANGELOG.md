@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.4 (2026-11-07)
+
+- "More free viewers" now starts with the Zovo extensions most related to this one. Picking one opens its Marketplace page, where you choose to install it.
+- The README has a "Support Zovo" section with GitHub Sponsors and the developer's GitHub profile, and "More tools by Zovo" lists related extensions.
+
 ## 0.2.3 (2026-11-07)
 
 - Page view. A "Page view" button shows the document the way Word lays it out, with page size, margins, portrait and landscape pages, headers, footers, fonts and colors. "Reading view" switches back, and the choice is kept per workspace. New setting `docxViewer.defaultView`.
