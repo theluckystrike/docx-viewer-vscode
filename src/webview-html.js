@@ -1,11 +1,11 @@
 'use strict';
 // Builds the webview shell. Document content never goes into this string; it
 // arrives later through postMessage as sanitized HTML.
-const crypto = require('crypto');
+const { nonce: randomNonce } = require('./rand');
 const { footerHtml, FOOTER_CSS } = require('./support');
 
 function nonce() {
-  return crypto.randomBytes(16).toString('base64').replace(/[^A-Za-z0-9]/g, '');
+  return randomNonce();
 }
 
 function escapeAttr(s) {

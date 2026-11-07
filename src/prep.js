@@ -8,7 +8,7 @@
 // Markers use private-use characters and a random tag per conversion, so document text cannot
 // imitate them.
 
-const crypto = require('crypto');
+const { hex } = require('./rand');
 const { ommlToMathml } = require('./omml');
 const { renderChart } = require('./chart');
 
@@ -50,7 +50,7 @@ function resolveTarget(target) {
 // documentXml: word/document.xml text. readPart(path) -> Promise<string|null>.
 // Returns { xml, items: { [marker]: { kind, html, inlineHtml, markdown, text, block } }, tag, counts }.
 async function prepare(documentXml, readPart, relsXml) {
-  const tag = crypto.randomBytes(4).toString('hex');
+  const tag = hex(4);
   const items = {};
   const counts = { equations: 0, charts: 0, fields: 0 };
   let n = 0;

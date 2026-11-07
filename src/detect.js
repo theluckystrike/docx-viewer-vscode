@@ -21,7 +21,7 @@ function detectFormat(buf) {
   if (startsWith(buf, ZIP_MAGIC)) return 'zip';
   if (startsWith(buf, OLE_MAGIC)) return 'ole';
   if (startsWith(buf, RTF_MAGIC)) return 'rtf';
-  const head = Buffer.from(buf.buffer || buf, buf.byteOffset || 0, Math.min(buf.length, 1024)).toString('utf8');
+  const head = new TextDecoder('utf-8').decode(buf.subarray(0, Math.min(buf.length, 1024)));
   if (HTML_HEAD.test(head)) return 'html';
   return 'unknown';
 }
@@ -33,14 +33,32 @@ function isLegacyExt(ext) {
 // What an OLE (Compound File) container holds, from the UTF-16 stream names in its directory:
 // 'encrypted' (a password-protected .docx: EncryptedPackage + EncryptionInfo), 'doc' (a Word
 // 97-2003 file: WordDocument stream) or 'other'.
-const U16 = (s) => Buffer.from(s, 'utf16le');
+// Plain Uint8Array code (no Node Buffer), so the same file runs in the VS Code for the Web worker.
+function U16(s) {
+  const out = new Uint8Array(s.length * 2);
+  for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); out[2 * i] = c & 0xff; out[2 * i + 1] = c >> 8; }
+  return out;
+}
+// Index of needle in hay (both Uint8Array), or -1. Node's Buffer.indexOf when there is one (fast,
+// native); a byte loop in the browser.
+function indexOfBytes(hay, needle) {
+  const NodeBuffer = globalThis.Buffer; // undefined in the browser; not a free name, so no polyfill gets bundled
+  if (NodeBuffer && NodeBuffer.isBuffer(hay)) return hay.indexOf(NodeBuffer.from(needle.buffer, needle.byteOffset, needle.byteLength));
+  const first = needle[0];
+  const last = hay.length - needle.length;
+  outer: for (let i = hay.indexOf(first); i !== -1 && i <= last; i = hay.indexOf(first, i + 1)) {
+    for (let j = 1; j < needle.length; j++) if (hay[i + j] !== needle[j]) continue outer;
+    return i;
+  }
+  return -1;
+}
 const ENCRYPTED_PACKAGE = U16('EncryptedPackage');
 const WORD_DOCUMENT = U16('WordDocument');
 function oleKind(buf) {
   if (!buf || !buf.length) return 'other';
-  const b = Buffer.isBuffer(buf) ? buf : Buffer.from(buf.buffer || buf, buf.byteOffset || 0, buf.byteLength);
-  if (b.indexOf(ENCRYPTED_PACKAGE) !== -1) return 'encrypted';
-  if (b.indexOf(WORD_DOCUMENT) !== -1) return 'doc';
+  const b = buf instanceof Uint8Array ? buf : new Uint8Array(buf.buffer || buf, buf.byteOffset || 0, buf.byteLength);
+  if (indexOfBytes(b, ENCRYPTED_PACKAGE) !== -1) return 'encrypted';
+  if (indexOfBytes(b, WORD_DOCUMENT) !== -1) return 'doc';
   return 'other';
 }
 
@@ -78,4 +96,4 @@ const ENCRYPTED_DOCX = { kind: 'encrypted', title: 'This document is password pr
 // Notice for a password-protected .doc file (the FIB says the streams are encrypted).
 const ENCRYPTED_DOC = { kind: 'encrypted', title: 'This .doc file is password protected', detail: 'Word encrypted the text of this file. DOCX Viewer cannot read it. Open it in Word, remove the password and save it again, then open it here.' };
 
-module.exports = { detectFormat, noticeFor, canConvert, isLegacyExt, oleKind, ENCRYPTED_DOC, ENCRYPTED_DOCX };
+module.exports = { indexOfBytes, detectFormat, noticeFor, canConvert, isLegacyExt, oleKind, ENCRYPTED_DOC, ENCRYPTED_DOCX };

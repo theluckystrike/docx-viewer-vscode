@@ -80,6 +80,10 @@ async function stripDoctypes(buffer) {
   return changed ? zip.generateAsync({ type: 'nodebuffer', compression: 'STORE' }) : null;
 }
 
+// Mammoth's Node build reads options.buffer, its browser build (VS Code for the Web) options.arrayBuffer.
+// Both hand the bytes to JSZip, which takes a Buffer or Uint8Array.
+function zipInput(bytes) { return { buffer: bytes, arrayBuffer: bytes }; }
+
 // buf: Buffer/Uint8Array of a .docx. Returns a plain, structured-clone-safe object.
 async function convertDocx(buf, options) {
   const opts = Object.assign({}, DEFAULTS, options || {});
@@ -177,14 +181,14 @@ async function convertDocx(buf, options) {
   let result;
   try {
     try {
-      result = await mammoth.convertToHtml({ buffer: input }, mammothOptions);
+      result = await mammoth.convertToHtml(zipInput(input), mammothOptions);
     } catch (err) {
       if (!/entity|DOCTYPE/i.test(String((err && err.message) || err))) throw err;
       const clean = await stripDoctypes(input);
       if (!clean) throw err;
       imgStats.list.length = 0;
       imgStats.totalBytes = 0;
-      result = await mammoth.convertToHtml({ buffer: clean }, mammothOptions);
+      result = await mammoth.convertToHtml(zipInput(clean), mammothOptions);
     }
   } catch (err) {
     const msg = String((err && err.message) || err);

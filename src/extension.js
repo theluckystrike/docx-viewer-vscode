@@ -1,7 +1,8 @@
 'use strict';
 const vscode = require('vscode');
 const path = require('path');
-const { convertInWorker } = require('./run-worker');
+const runWorker = require('./run-worker'); // src/web/run-worker.js in the VS Code for the Web build
+const { convertInWorker } = runWorker;
 const { noticeFor, detectFormat, canConvert } = require('./detect');
 const { buildWebviewHtml, buildPageHtml, fontAttr } = require('./webview-html');
 const P = require('../media/protocol');
@@ -13,6 +14,13 @@ let rating = { success() {}, failure() {} };
 const counted = new WeakSet(); // panels already counted for the rating prompt
 
 const VIEW_TYPE = 'docxViewer.preview';
+// VS Code for the Web (vscode.dev, github.dev): no default app to hand a file to, and no git.
+const isWeb = () => !!(vscode.env && vscode.UIKind && vscode.env.uiKind === vscode.UIKind.Web);
+const WEB_NO_APP = 'VS Code for the Web cannot open files in another app. Right-click the file in the Explorer and choose Download to open it on your computer.';
+function openInDefaultApp(uri) {
+  if (isWeb()) return vscode.window.showInformationMessage(WEB_NO_APP);
+  return vscode.env.openExternal(uri);
+}
 const MB = 1024 * 1024;
 
 function cfg() {
@@ -164,7 +172,7 @@ class DocxEditorProvider {
     switch (m.name) {
       case 'openAsText': return openAsText(document.uri, this);
       case 'copyMarkdown': return copyMarkdown(document.uri, this);
-      case 'openInDefaultApp': return vscode.env.openExternal(document.uri);
+      case 'openInDefaultApp': return openInDefaultApp(document.uri);
       case 'openSettings': return vscode.commands.executeCommand('workbench.action.openSettings', 'docxViewer.maxFileSizeMB');
       case 'openAnyway': document.allowLarge = true; document.invalidate(); return this.render(panel, document);
       case 'reload': document.invalidate(); return this.render(panel, document);
@@ -286,7 +294,8 @@ class DocxEditorProvider {
     const meta = this.meta(document, r.size);
     if (!r.ok) {
       if (!r.tooLarge) rating.failure(); // any file that did not open: no rating ask after it
-      const actions = r.tooLarge ? ['openAnyway', 'openInDefaultApp', 'openSettings'] : r.notice.kind === 'error' ? ['reload', 'openInDefaultApp'] : ['openInDefaultApp'];
+      let actions = r.tooLarge ? ['openAnyway', 'openInDefaultApp', 'openSettings'] : r.notice.kind === 'error' ? ['reload', 'openInDefaultApp'] : ['openInDefaultApp'];
+      if (isWeb()) actions = actions.filter((a) => a !== 'openInDefaultApp');
       return post(P.buildNotice(r.notice, meta, actions));
     }
     if (r.revisions && document.revMode !== 'final') {
@@ -364,6 +373,8 @@ async function copyMarkdown(uri, provider) {
 }
 
 function activate(context) {
+  // Web build: the converter worker is a separate script next to the extension.
+  if (runWorker.configure) runWorker.configure({ workerUrl: vscode.Uri.joinPath(context.extensionUri, 'out', 'web', 'worker.js').toString(true) });
   rating = createRatingPrompt({ vscode, context, extensionId: 'zovo.docx-viewer-vscode', section: 'docxViewer', name: 'DOCX Viewer' });
   registerSupport({ vscode, context, prefix: 'docxViewer', selfId: 'zovo.docx-viewer-vscode' });
   const provider = new DocxEditorProvider(context);
@@ -382,7 +393,7 @@ function activate(context) {
     vscode.commands.registerCommand('docxViewer.openAsText', (arg) => { const u = targetUri(arg, provider); if (u) return openAsText(u, provider); }),
     vscode.commands.registerCommand('docxViewer.openAsMarkdown', (arg) => { const u = targetUri(arg, provider); if (u) return openAsMarkdown(u, provider); }),
     vscode.commands.registerCommand('docxViewer.copyAsMarkdown', (arg) => { const u = targetUri(arg, provider); if (u) return copyMarkdown(u, provider); }),
-    vscode.commands.registerCommand('docxViewer.openInDefaultApp', (arg) => { const u = targetUri(arg, provider); if (u) return vscode.env.openExternal(u); }),
+    vscode.commands.registerCommand('docxViewer.openInDefaultApp', (arg) => { const u = targetUri(arg, provider); if (u) return openInDefaultApp(u); }),
     vscode.commands.registerCommand('docxViewer.find', () => {
       const p = provider.active || [...provider.panels.keys()].find((x) => x.visible);
       if (p) p.webview.postMessage({ type: 'find' });
@@ -414,4 +425,4 @@ function activate(context) {
 
 function deactivate() {}
 
-module.exports = { activate, deactivate, DocxEditorProvider, DocxDocument, convertBytes, NOTES, pageNoteText };
+module.exports = { activate, deactivate, DocxEditorProvider, DocxDocument, convertBytes, NOTES, pageNoteText, isWeb, WEB_NO_APP };

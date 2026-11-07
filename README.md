@@ -9,7 +9,8 @@ For developers who get specs, contracts and reports as Word files, DOCX Viewer o
 - Read Word and OpenDocument (.odt) specs, contracts and reports next to your code. The page follows your VS Code theme, or switch to white paper with one click.
 - Find things fast. Search shows a match count, and the outline jumps to any heading.
 - See what changed. Compare a document with its last Git commit, or with another version, in the VS Code diff view. Or copy the whole document as Markdown with tables and footnotes.
-- Open big real-world files. A 47 MB government report with 41 photos opens in about 1.5 seconds, and Page view lays it out in under half a second. The preview reloads when the file changes on disk. The whole extension is a 0.5 MB download and needs no Office or LibreOffice.
+- Open big real-world files. A 47 MB government report with 41 photos opens in about 1.5 seconds, and Page view lays it out in under half a second. The preview reloads when the file changes on disk. The whole extension is a 0.7 MB download and needs no Office or LibreOffice.
+- Works in the browser too. In vscode.dev and github.dev, click a .docx in a GitHub repository and read it without cloning.
 
 ## Quick start
 
@@ -134,6 +135,7 @@ DOCX Viewer works offline. It makes no network calls and sends no telemetry. The
 - SmartArt doesn't show. Excel 2016 chart types (waterfall, treemap and others) show the picture Word saved with them, if there is one. Page view draws equations its own way and shows charts only as their saved picture. EMF, WMF and TIFF images show a placeholder. Tracked changes to paragraph marks, formatting and table rows show as in Final.
 - `.doc` files show text only. Some `.doc` files that macOS TextEdit or `textutil` saved at more than about 2.4 MB can't be read and get the could-not-read message.
 - Search finds text inside one formatting run. A word whose letters have mixed formatting may not match.
+- In VS Code for the Web (vscode.dev, github.dev), "Compare with Git HEAD" and "Open in Default App" are not available. To use them, open the folder in desktop VS Code.
 - In Markdown, images become placeholder links such as `![](#image-1)` to keep the text small.
 - In `.odt` files, styles set by name in the document (Title, Quotations, Preformatted Text) and direct bold, italic, underline, strikethrough and superscript show. Other paragraph styles, frames and drawings are simplified. SVG and linked images show a placeholder. OpenDocument spreadsheets and presentations don't open. Tracked changes and comments in `.odt` files are not shown.
 

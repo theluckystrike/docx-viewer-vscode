@@ -2,7 +2,7 @@
   "name": "docx-viewer-vscode",
   "displayName": "DOCX Viewer, Word Viewer & DOCX Preview (Dark Mode)",
   "description": "DOCX viewer and Word viewer for VS Code: open .docx, .odt and old .doc files as a read-only preview with dark mode, Page view, equations, charts, search, an outline and a Git compare, all offline.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "publisher": "zovo",
   "license": "MIT",
   "icon": "icon.png",
@@ -59,6 +59,7 @@
     "odt viewer"
   ],
   "main": "./out/extension.js",
+  "browser": "./out/web/extension.js",
   "activationEvents": [],
   "capabilities": {
     "virtualWorkspaces": true,
@@ -199,12 +200,12 @@
         },
         {
           "command": "docxViewer.openInDefaultApp",
-          "when": "activeCustomEditorId == 'docxViewer.preview'",
+          "when": "activeCustomEditorId == 'docxViewer.preview' && !isWeb",
           "group": "1_docx@2"
         },
         {
           "command": "docxViewer.compareWithHead",
-          "when": "activeCustomEditorId == 'docxViewer.preview' && isWorkspaceTrusted",
+          "when": "activeCustomEditorId == 'docxViewer.preview' && isWorkspaceTrusted && !isWeb",
           "group": "1_docx@3"
         },
         {
@@ -226,7 +227,7 @@
         },
         {
           "command": "docxViewer.compareWithHead",
-          "when": "resourceExtname =~ /^\\.(docx|dotx|docm|odt|ott|doc|dot)$/i && !explorerResourceIsFolder && isWorkspaceTrusted",
+          "when": "resourceExtname =~ /^\\.(docx|dotx|docm|odt|ott|doc|dot)$/i && !explorerResourceIsFolder && isWorkspaceTrusted && !isWeb",
           "group": "7_docx@3"
         },
         {
@@ -243,12 +244,20 @@
         {
           "command": "docxViewer.toggleToolbar",
           "when": "activeCustomEditorId == 'docxViewer.preview'"
+        },
+        {
+          "command": "docxViewer.compareWithHead",
+          "when": "!isWeb"
+        },
+        {
+          "command": "docxViewer.openInDefaultApp",
+          "when": "!isWeb"
         }
       ],
       "scm/resourceState/context": [
         {
           "command": "docxViewer.compareWithHead",
-          "when": "scmProvider == git && resourceExtname =~ /^\\.(docx|dotx|docm|odt|ott|doc|dot)$/i",
+          "when": "scmProvider == git && !isWeb && resourceExtname =~ /^\\.(docx|dotx|docm|odt|ott|doc|dot)$/i",
           "group": "navigation@99"
         }
       ]
@@ -387,6 +396,7 @@
     "package": "npx -y @vscode/vsce@3 package --no-dependencies -o dist/"
   },
   "dependencies": {
+    "buffer": "^6.0.3",
     "docx-preview": "^0.4.1",
     "mammoth": "^1.13.0",
     "word-extractor": "^1.0.4"

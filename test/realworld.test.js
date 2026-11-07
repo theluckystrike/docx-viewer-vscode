@@ -319,9 +319,9 @@ test('font setting: editor, a font list, or nothing; odd values are dropped', ()
   assert.match(buildWebviewHtml({ cspSource: 'x', uris: URIS, nonce: 'N', font: 'editor' }), /data-font="editor"/);
 });
 
-test('package.json: 0.3.0, toolbar command and keybinding, font setting, higher limits, 30 keywords', () => {
+test('package.json: 0.3.1, toolbar command and keybinding, font setting, higher limits, 30 keywords', () => {
   const pkg = require('../package.json');
-  assert.strictEqual(pkg.version, '0.3.0');
+  assert.strictEqual(pkg.version, '0.3.1');
   assert.ok(pkg.contributes.commands.some((c) => c.command === 'docxViewer.toggleToolbar'));
   const kb = pkg.contributes.keybindings.find((k) => k.command === 'docxViewer.toggleToolbar');
   assert.strictEqual(kb.when, "activeCustomEditorId == 'docxViewer.preview'");

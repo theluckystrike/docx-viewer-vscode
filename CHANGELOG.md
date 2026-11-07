@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1 (2026-11-08)
+
+- DOCX Viewer now works in VS Code for the Web (vscode.dev and github.dev). Open a .docx, .odt or .doc file from a GitHub repository or a local folder in the browser and it shows the same Reading view, Page view, outline, search, equations and charts. The converter runs in a separate browser worker with a 60 second limit, so a damaged file can't hang the editor.
+- On the web, "Compare with Git HEAD" and "Open in Default App" are hidden, because the browser can't run git or another app. "Compare with Another Document" works.
+
 ## 0.3.0 (2026-11-08)
 
 Fixes found by opening 140 real-world files (Apache POI bug reports, a 47 MB JNCC survey report, gov.uk statistics):
