@@ -250,3 +250,16 @@ test('protocol: pageData, zoom and page failure messages are checked', () => {
   assert.ok(P.validateInbound({ type: 'command', name: 'showPage' }).ok);
   assert.ok(!P.validateOutbound({ type: 'begin', meta: {}, total: 1, bannerActions: ['format c:'] }));
 });
+
+test('webview: the tracked-changes note shows with a Reading view button', async () => {
+  const { win, doc, posted } = await bootWebview(await contractDocx());
+  assert.ok(doc.getElementById('dv-page-note').hidden);
+  win.dispatchEvent(new win.MessageEvent('message', { data: { type: 'pageNote', text: 'This document has 2 tracked changes and 1 comment. Reading view shows them.', actions: ['showReading'] } }));
+  assert.ok(!doc.getElementById('dv-page-note').hidden);
+  const btn = doc.querySelector('#dv-page-note-actions button');
+  assert.strictEqual(btn.textContent, 'Reading view');
+  btn.dispatchEvent(new win.MouseEvent('click', { bubbles: true }));
+  assert.deepStrictEqual(posted[posted.length - 1], { type: 'command', name: 'showReading' });
+  win.dispatchEvent(new win.MessageEvent('message', { data: { type: 'pageNote', text: 'x', actions: ['format c:'] } }));
+  assert.strictEqual(doc.getElementById('dv-page-note-text').textContent, 'This document has 2 tracked changes and 1 comment. Reading view shows them.', 'unknown actions are refused');
+});
