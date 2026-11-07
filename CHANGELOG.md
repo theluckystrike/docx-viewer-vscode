@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.5 (2026-11-07)
+
+- The Marketplace name is now "DOCX Viewer, Word Viewer & DOCX Preview (Dark Mode)" (it was "DOCX Viewer & Word Viewer with Dark Mode"). The extension id, commands and settings stay the same.
+
 ## 0.2.4 (2026-11-07)
 
 - "More free viewers" now starts with the Zovo extensions most related to this one. Picking one opens its Marketplace page, where you choose to install it.
