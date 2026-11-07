@@ -153,8 +153,9 @@ mark.dv-current { background: var(--dv-current); outline: 1px solid var(--vscode
 
 /* ---------- Page view (docx-preview) ---------- */
 .dv-pages { overflow: auto; padding: 0; }
-/* max-content + min-width: a page wider than the pane scrolls from its left edge instead of being cut off. */
-.dv-pages .docx-wrapper { background: transparent; padding: 24px 16px 48px; display: flex; flex-flow: column; align-items: center; width: max-content; min-width: 100%; box-sizing: border-box; }
+/* safe center: a page that fits is centered; a page wider than the pane starts at its left edge and scrolls, instead of being cut off on the left. */
+.dv-pages .docx-wrapper { background: transparent; padding: 24px 16px 48px; display: flex; flex-flow: column; align-items: safe center; }
+.dv-pages .docx-wrapper > section.docx { flex-shrink: 0; }
 .dv-pages .docx-wrapper > section.docx { box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35); margin-bottom: 24px; color: #000; }
 /* Dark pages: invert the paper, then invert pictures back so photos and charts keep their colors. */
 body[data-theme="dark"] .dv-pages section.docx,
