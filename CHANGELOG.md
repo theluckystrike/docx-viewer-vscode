@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.2 (2026-11-08)
+
+- EMF, WMF and TIFF pictures now show in Reading view and Page view, on the desktop and on the web. These are the pictures Word keeps for Visio drawings, Excel charts pasted as pictures, old Equation Editor and MathType equations, and scanned TIFF pages. Before, they showed a placeholder. The viewer draws them itself, offline: EMF and WMF as sharp vector pictures with their text, TIFF (LZW, PackBits, Deflate, CCITT fax and uncompressed) as an image of its first page.
+- A picture that can't be drawn shows a short note that says why, such as "Picture could not be drawn (EMF): it has only EMF+ records". Damaged or oversized pictures are checked before they are drawn (record count, bitmap size, 40 megapixels per TIFF page, `docxViewer.maxImageSizeMB`), so one bad picture can't hang the viewer.
+- Page view now shows the pictures of embedded objects, such as old equations, which it skipped before.
+- Shift + mouse wheel scrolls sideways in Reading view too, for zoomed-in pages and wide content. Page view already had it.
+- New third-party code: WMFJS from rtf.js (MIT) and UTIF.js (MIT), listed in THIRD-PARTY-NOTICES.md.
+
 ## 0.3.1 (2026-11-08)
 
 - DOCX Viewer now works in VS Code for the Web (vscode.dev and github.dev). Open a .docx, .odt or .doc file from a GitHub repository or a local folder in the browser and it shows the same Reading view, Page view, outline, search, equations and charts. The converter runs in a separate browser worker with a 60 second limit, so a damaged file can't hang the editor.

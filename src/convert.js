@@ -19,6 +19,7 @@ const DEFAULTS = {
 };
 
 const IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/bmp', 'image/webp']);
+const PictureKind = require('./picture-kind');
 
 // Mammoth ignores Word's Title, Subtitle, Quote and Caption styles by default.
 const STYLE_MAP = [
@@ -35,13 +36,21 @@ const STYLE_MAP = [
 
 function makeImageConverter(opts, stats) {
   return mammoth.images.imgElement(async (image) => {
-    const type = (image.contentType || '').toLowerCase();
+    let type = (image.contentType || '').toLowerCase();
+    let buf = null;
     if (!IMAGE_TYPES.has(type)) {
-      stats.skipped++;
-      const fmt = (type.split('/')[1] || 'unknown').replace(/^x-/, '').toUpperCase();
-      return { src: '', 'data-dv-skipped': fmt + ' images are not supported' };
+      // EMF, WMF and TIFF go to the webview as bytes; media/pictures.js draws them there. The bytes
+      // decide, not the declared type: Word files often call a WMF "image/x-emf" or "application/octet-stream".
+      buf = await image.read();
+      const kind = PictureKind.sniff(buf);
+      if (!kind) {
+        stats.skipped++;
+        const fmt = (PictureKind.kindOfType(type) || (type.split('/')[1] || 'unknown').replace(/^x-/, '')).toUpperCase();
+        return { src: '', 'data-dv-skipped': fmt + ' images are not supported' };
+      }
+      type = PictureKind.MIME[kind];
     }
-    const buf = await image.read();
+    if (!buf) buf = await image.read();
     if (buf.length > opts.maxImageBytes) {
       stats.skipped++;
       return { src: '', 'data-dv-skipped': H.formatBytes(buf.length) + ' is over the ' + H.formatBytes(opts.maxImageBytes) + ' image limit' };

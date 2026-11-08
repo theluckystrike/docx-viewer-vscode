@@ -38,13 +38,39 @@
   const HEADING = /(?:^|\s)docx_(title|heading([1-9]))(?:\s|$)/;
   const REMOTE = /^\s*(https?:|\/\/|ftp:|file:)/i;
 
+  // EMF, WMF and TIFF pictures: docx-preview hands each picture to the hook; these three are drawn
+  // by media/pictures.js (through DocxProtocol.drawPicture) and the rest pass through unchanged.
+  // A picture that cannot be drawn becomes a small box that says so. urls collects the blob: URLs.
+  const DRAWN = /\.(emf|wmf|tiff?)$/i;
+  function pictureHook(doc, P, limits, urls) {
+    return function (blob, path, original) {
+      const m = DRAWN.exec(path || '');
+      if (!m || !blob) return original(blob, path);
+      const kind = m[1].toLowerCase();
+      const keep = function (b) { const u = URL.createObjectURL(b); urls.push(u); return u; };
+      return Promise.resolve().then(function () {
+        if (limits && blob.size > limits.maxBytes) throw new Error('it is over the ' + Math.round(limits.maxBytes / 1048576) + ' MB picture limit');
+        return blob.arrayBuffer();
+      }).then(function (ab) { return P.drawPicture(doc, new Uint8Array(ab), kind, limits); }).then(keep, function (err) {
+        return keep(new Blob([placeholderSvg(P.pictureMessage(kind, err))], { type: 'image/svg+xml' }));
+      });
+    };
+  }
+  function placeholderSvg(text) {
+    const t = String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const short = t.split(':')[0];
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="60" viewBox="0 0 320 60"><title>' + t + '</title>' +
+      '<rect x="1" y="1" width="318" height="58" fill="#f3f3f3" stroke="#999" stroke-dasharray="4 3"/>' +
+      '<text x="160" y="34" font-family="sans-serif" font-size="13" fill="#555" text-anchor="middle">' + short + '</text></svg>';
+  }
+
   // Lays the document out into body. Rejects with Error('timeout' | 'empty' | <docx-preview error>).
-  function renderPages(renderAsync, data, body, styleEl, timeoutMs) {
+  function renderPages(renderAsync, data, body, styleEl, timeoutMs, imageHook) {
     let timer = null;
     const timeout = new Promise(function (_, reject) {
       timer = setTimeout(function () { reject(new Error('timeout')); }, timeoutMs || TIMEOUT_MS);
     });
-    const work = Promise.resolve().then(function () { return renderAsync(data, body, styleEl, RENDER_OPTIONS); }).then(function () {
+    const work = Promise.resolve().then(function () { return renderAsync(data, body, styleEl, RENDER_OPTIONS, imageHook); }).then(function () {
       scrub(body);
       const pages = body.querySelectorAll('section.docx').length;
       if (!pages) throw new Error('empty');
@@ -113,6 +139,7 @@
     let marks = [];
     let current = -1;
     let loaded = false;
+    let pictureUrls = [];
 
     const setToolbar = P.setupToolbar(doc, vscode);
     function save() { vscode.setState({ theme: state.theme, outlineOpen: state.outlineOpen, query: state.query }); }
@@ -272,13 +299,16 @@
       $('dv-name').textContent = m.meta.fileName || '';
       if (m.theme && !saved.theme) { state.theme = m.theme; applyTheme(); }
       loaded = false;
+      pictureUrls.forEach(function (u) { URL.revokeObjectURL(u); });
+      pictureUrls = [];
       pagesRoot.textContent = '';
       statusEl.hidden = false;
       statusEl.textContent = 'Laying out pages...';
       const t0 = Date.now();
       const render = win.DocxPreview && win.DocxPreview.renderAsync;
       if (typeof render !== 'function') { vscode.postMessage({ type: 'pageFailed', reason: 'error', ms: 0 }); return; }
-      renderPages(render, m.bytes, pagesRoot, $('dv-page-styles'), TIMEOUT_MS).then(function (pages) {
+      const limits = { maxBytes: typeof m.pictureMaxBytes === 'number' && m.pictureMaxBytes > 0 ? m.pictureMaxBytes : 20 * 1048576 };
+      renderPages(render, m.bytes, pagesRoot, $('dv-page-styles'), TIMEOUT_MS, pictureHook(doc, P, limits, pictureUrls)).then(function (pages) {
         statusEl.hidden = true;
         loaded = true;
         applyZoom(false);
@@ -294,5 +324,5 @@
     vscode.postMessage({ type: 'ready' });
   }
 
-  return { RENDER_OPTIONS, TIMEOUT_MS, renderPages, scrub, buildOutline, linkAction, fitZoom, boot };
+  return { RENDER_OPTIONS, TIMEOUT_MS, renderPages, pictureHook, placeholderSvg, scrub, buildOutline, linkAction, fitZoom, boot };
 });

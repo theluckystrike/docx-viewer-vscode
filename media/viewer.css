@@ -126,6 +126,10 @@ body[data-theme="auto"] .dv-page { border: 1px solid var(--dv-border); }
 .dv-page ol.dv-footnotes { margin-top: 2.4em; padding-top: 0.8em; border-top: 1px solid var(--dv-table-border); font-size: 0.88em; }
 .dv-page sup { line-height: 0; }
 .dv-page sup sup { vertical-align: baseline; font-size: 1em; }
+/* EMF, WMF and TIFF pictures (media/pictures.js): white paper behind them, as in Word, so black
+   lines stay visible on a dark page; a light box while they are drawn. */
+.dv-page img.dv-drawn { background: #fff; }
+.dv-page img.dv-img-drawing { display: inline-block; min-width: 48px; min-height: 24px; background: var(--dv-table-head); }
 .dv-img-skipped { display: inline-block; padding: 4px 8px; border: 1px dashed var(--dv-table-border); color: var(--dv-muted); font-size: 0.9em; }
 .dv-empty { color: var(--dv-muted); }
 mark.dv-hit { background: var(--dv-hit); color: inherit; border-radius: 2px; }

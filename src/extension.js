@@ -105,8 +105,8 @@ class DocxEditorProvider {
     const common = { cspSource: panel.webview.cspSource, theme: cfg().theme, zoom: this.zoom(), showSupportLinks: showLinks(vscode, 'docxViewer'), toolbarHidden: !!(ws && ws.get(TOOLBAR_KEY)), font: cfg().font };
     this.views.set(panel, view);
     panel.webview.html = view === 'page'
-      ? buildPageHtml({ ...common, uris: { css: u('viewer.css'), protocol: u('protocol.js'), search: u('search.js'), pageView: u('page-view.js'), page: u('page.js') } })
-      : buildWebviewHtml({ ...common, pageAvailable: this.pageAvailable(document), uris: { css: u('viewer.css'), protocol: u('protocol.js'), search: u('search.js'), viewer: u('viewer.js') } });
+      ? buildPageHtml({ ...common, uris: { css: u('viewer.css'), protocol: u('protocol.js'), search: u('search.js'), pageView: u('page-view.js'), page: u('page.js'), pictures: u('pictures.js') } })
+      : buildWebviewHtml({ ...common, pageAvailable: this.pageAvailable(document), uris: { css: u('viewer.css'), protocol: u('protocol.js'), search: u('search.js'), viewer: u('viewer.js'), pictures: u('pictures.js') } });
   }
 
   async switchView(panel, document, view, remember) {
@@ -271,7 +271,7 @@ class DocxEditorProvider {
     // A Node Buffer (what readFile can return) arrives as a plain object instead.
     const copy = new Uint8Array(bytes.byteLength);
     copy.set(bytes);
-    await panel.webview.postMessage({ type: 'pageData', v: P.VERSION, meta: this.meta(document, size), theme: c.theme, zoom: this.zoom(), bytes: copy });
+    await panel.webview.postMessage({ type: 'pageData', v: P.VERSION, meta: this.meta(document, size), theme: c.theme, zoom: this.zoom(), pictureMaxBytes: c.maxImageBytes, bytes: copy });
     // Page view does not draw tracked changes or comments. Say so once the converter has counted them.
     const r = await this.load(document).catch(() => null);
     if (r && r.ok && r.revisions && this.panels.has(panel) && this.views.get(panel) === 'page') {

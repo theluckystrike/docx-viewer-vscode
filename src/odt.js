@@ -18,6 +18,7 @@ const NS = {
 };
 const ODT_MIME = /^application\/vnd\.oasis\.opendocument\.text(-template|-master)?$/;
 const OTHER_MIME = /^application\/vnd\.oasis\.opendocument\.(spreadsheet|presentation|graphics|formula|chart)/;
+const PictureKind = require('./picture-kind');
 const IMAGE_BY_EXT = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', bmp: 'image/bmp', webp: 'image/webp' };
 const MAX_DEPTH = 200;
 
@@ -31,6 +32,8 @@ function sniffImage(buf) {
   if (buf.length > 6 && buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46) return 'image/gif';
   if (buf.length > 2 && buf[0] === 0x42 && buf[1] === 0x4d) return 'image/bmp';
   if (buf.length > 12 && buf.toString('latin1', 0, 4) === 'RIFF' && buf.toString('latin1', 8, 12) === 'WEBP') return 'image/webp';
+  const kind = PictureKind.sniff(buf); // EMF, WMF, TIFF: drawn in the webview (src/pictures.js)
+  if (kind) return PictureKind.MIME[kind];
   return '';
 }
 

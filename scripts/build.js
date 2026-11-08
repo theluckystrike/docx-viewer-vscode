@@ -1,5 +1,6 @@
 // Bundles the extension host code and the converter worker into out/, the Page view renderer
-// (docx-preview + JSZip) into media/page-view.js for the webview, then checks the
+// (docx-preview + JSZip) into media/page-view.js and the picture decoders into media/pictures.js
+// for the webviews, then checks the
 // licenses of every npm package that went into the bundles (see scripts/licenses.js).
 const esbuild = require('esbuild');
 const fs = require('fs');
@@ -30,6 +31,8 @@ Promise.all([
   esbuild.build({ ...common, entryPoints: [path.join(root, 'src/extension.js')], outfile: path.join(root, 'out/extension.js'), external: ['vscode'] }),
   esbuild.build({ ...common, entryPoints: [path.join(root, 'src/worker.js')], outfile: path.join(root, 'out/worker.js') }),
   esbuild.build({ ...common, platform: 'browser', target: 'chrome114', format: 'iife', entryPoints: [path.join(root, 'src/page-entry.js')], outfile: path.join(root, 'media/page-view.js') }),
+  // EMF, WMF and TIFF pictures for both webviews (src/pictures.js): WMFJS from rtf.js, UTIF.js, pako.
+  esbuild.build({ ...common, platform: 'browser', target: 'chrome114', format: 'iife', entryPoints: [path.join(root, 'src/pictures-entry.js')], outfile: path.join(root, 'media/pictures.js') }),
   // The extension host code uses no Buffer (only the converter does), so no Buffer polyfill here: 57 KB less.
   esbuild.build({ ...web, inject: [], format: 'cjs', entryPoints: [path.join(root, 'src/extension.js')], outfile: path.join(root, 'out/web/extension.js'), external: ['vscode'] }),
   esbuild.build({ ...web, format: 'iife', entryPoints: [path.join(root, 'src/web/worker.js')], outfile: path.join(root, 'out/web/worker.js') })

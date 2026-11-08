@@ -12,6 +12,11 @@ For developers who get specs, contracts and reports as Word files, DOCX Viewer o
 - Open big real-world files. A 47 MB government report with 41 photos opens in about 1.5 seconds, and Page view lays it out in under half a second. The preview reloads when the file changes on disk. The whole extension is a 0.7 MB download and needs no Office or LibreOffice.
 - Works in the browser too. In vscode.dev and github.dev, click a .docx in a GitHub repository and read it without cloning.
 
+## New in 0.3.2
+
+- EMF, WMF and TIFF pictures show in both views. Visio drawings, Excel charts pasted as pictures, old Equation Editor and MathType equations and scanned TIFF pages used to be a grey placeholder. The viewer now draws them itself, offline, and a picture it can't draw gets a short note that says why.
+- Shift + mouse wheel scrolls sideways in Reading view, as it already did in Page view.
+
 ## Quick start
 
 1. Install DOCX Viewer.
@@ -25,7 +30,7 @@ No .docx at hand? Run "DOCX Viewer: Open Sample Document" from the Command Palet
 
 ## What it shows
 
-Headings, paragraphs, bold, italic, underline and strikethrough. Bulleted and numbered lists, including nested ones. Tables with merged cells. Images inline (PNG, JPEG, GIF, BMP and WebP). Equations and charts (see below). Figure and table numbers. Footnotes and endnotes, with links between the reference and the note. Hyperlinks, which open in your browser.
+Headings, paragraphs, bold, italic, underline and strikethrough. Bulleted and numbered lists, including nested ones. Tables with merged cells. Images inline: PNG, JPEG, GIF, BMP and WebP, plus EMF, WMF and TIFF, which the viewer draws itself (see Limits). Equations and charts (see below). Figure and table numbers. Footnotes and endnotes, with links between the reference and the note. Hyperlinks, which open in your browser.
 
 It reads `.docx`, `.dotx` (templates) and `.docm` files, and OpenDocument text files (`.odt` and `.ott` templates) from LibreOffice, Google Docs downloads and pandoc. Macros in `.docm` files never run. The viewer only reads the text and images.
 
@@ -132,7 +137,8 @@ DOCX Viewer works offline. It makes no network calls and sends no telemetry. The
 - It's a viewer. It can't edit or save a document.
 - Reading view simplifies the layout. It leaves out page size, margins, headers, footers, columns, text boxes, fonts and colors, so the text reads like a clean web page. Page view shows them.
 - Page view doesn't show tracked changes or comments. It says so and offers Reading view.
-- SmartArt doesn't show. Excel 2016 chart types (waterfall, treemap and others) show the picture Word saved with them, if there is one. Page view draws equations its own way and shows charts only as their saved picture. EMF, WMF and TIFF images show a placeholder. Tracked changes to paragraph marks, formatting and table rows show as in Final.
+- SmartArt doesn't show. Excel 2016 chart types (waterfall, treemap and others) show the picture Word saved with them, if there is one. Page view draws equations its own way and shows charts only as their saved picture. Tracked changes to paragraph marks, formatting and table rows show as in Final.
+- EMF and WMF pictures are drawn from their plain records. An EMF that has only EMF+ records (rare, some newer Office add-ins write them) shows a note instead. TIFF pictures show their first page; JPEG 2000 TIFFs show a note. A picture over `docxViewer.maxImageSizeMB`, an EMF or WMF with more than 200,000 records and a TIFF page over 40 megapixels show a note too.
 - `.doc` files show text only. Some `.doc` files that macOS TextEdit or `textutil` saved at more than about 2.4 MB can't be read and get the could-not-read message.
 - Search finds text inside one formatting run. A word whose letters have mixed formatting may not match.
 - In VS Code for the Web (vscode.dev, github.dev), "Compare with Git HEAD" and "Open in Default App" are not available. To use them, open the folder in desktop VS Code.
@@ -141,7 +147,7 @@ DOCX Viewer works offline. It makes no network calls and sends no telemetry. The
 
 ## Credits
 
-The .docx conversion uses [mammoth](https://github.com/mwilliamson/mammoth.js) (BSD-2-Clause). Page view uses [docx-preview](https://github.com/VolodymyrBaydalka/docxjs) (Apache-2.0), and `.doc` files are read with [word-extractor](https://github.com/morungos/node-word-extractor) (MIT). The .odt reader is part of this extension and uses JSZip (MIT) and @xmldom/xmldom (MIT), which mammoth already bundles. See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for every bundled package and its license.
+The .docx conversion uses [mammoth](https://github.com/mwilliamson/mammoth.js) (BSD-2-Clause). Page view uses [docx-preview](https://github.com/VolodymyrBaydalka/docxjs) (Apache-2.0), and `.doc` files are read with [word-extractor](https://github.com/morungos/node-word-extractor) (MIT). WMF pictures are drawn with WMFJS from [rtf.js](https://github.com/tbluemel/rtf.js) (MIT) and TIFF pictures are read with [UTIF.js](https://github.com/photopea/UTIF.js) (MIT). The EMF drawing code is part of this extension. The .odt reader is part of this extension and uses JSZip (MIT) and @xmldom/xmldom (MIT), which mammoth already bundles. See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for every bundled package and its license.
 
 ## License
 

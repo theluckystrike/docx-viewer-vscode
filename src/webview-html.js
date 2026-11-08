@@ -38,7 +38,7 @@ function buildWebviewHtml(opts) {
 ${footer ? `<style nonce="${n}">${FOOTER_CSS}</style>` : ''}
 <title>DOCX Viewer</title>
 </head>
-<body data-theme="${escapeAttr(opts.theme || 'auto')}" data-zoom="${zoomAttr(opts.zoom)}" data-bar="${opts.toolbarHidden ? 'hidden' : 'shown'}" data-font="${escapeAttr(fontAttr(opts.font))}">
+<body data-theme="${escapeAttr(opts.theme || 'auto')}"${picturesAttr(opts)} data-zoom="${zoomAttr(opts.zoom)}" data-bar="${opts.toolbarHidden ? 'hidden' : 'shown'}" data-font="${escapeAttr(fontAttr(opts.font))}">
 <header class="dv-bar" role="toolbar" aria-label="Document toolbar">
   <button type="button" id="dv-outline-toggle" class="dv-btn" title="Show or hide the outline" aria-pressed="true">Outline</button>
   <span id="dv-name" class="dv-name"></span>
@@ -73,6 +73,11 @@ ${footer}
 <script nonce="${n}" src="${escapeAttr(opts.uris.viewer)}"></script>
 </body>
 </html>`;
+}
+
+// URL of media/pictures.js (EMF, WMF and TIFF drawing), loaded by the webview on first use.
+function picturesAttr(opts) {
+  return opts.uris && opts.uris.pictures ? ' data-pictures="' + escapeAttr(opts.uris.pictures) + '"' : '';
 }
 
 // docxViewer.fontFamily: '' (document fonts), 'editor' (the editor font) or a font list.
@@ -128,7 +133,7 @@ function buildPageHtml(opts) {
 ${footer ? `<style>${FOOTER_CSS}</style>` : ''}
 <title>DOCX Viewer</title>
 </head>
-<body class="dv-pageview" data-theme="${escapeAttr(opts.theme || 'auto')}" data-zoom="${zoomAttr(opts.zoom)}" data-bar="${opts.toolbarHidden ? 'hidden' : 'shown'}">
+<body class="dv-pageview" data-theme="${escapeAttr(opts.theme || 'auto')}"${picturesAttr(opts)} data-zoom="${zoomAttr(opts.zoom)}" data-bar="${opts.toolbarHidden ? 'hidden' : 'shown'}">
 <header class="dv-bar" role="toolbar" aria-label="Document toolbar">
   <button type="button" id="dv-outline-toggle" class="dv-btn" title="Show or hide the outline" aria-pressed="true">Outline</button>
   <span id="dv-name" class="dv-name"></span>

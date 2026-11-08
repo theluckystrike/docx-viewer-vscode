@@ -24,7 +24,8 @@
     if (!dir) return 1;
     return clampZoom(Math.round((clampZoom(z) + dir * ZOOM.step) * 10) / 10);
   }
-  const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/bmp', 'image/webp'];
+  // The last three are drawn by media/pictures.js before they show (see src/pictures.js).
+  const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/bmp', 'image/webp', 'image/x-emf', 'image/x-wmf', 'image/tiff'];
   const SAFE_LINK = /^(https?:\/\/|mailto:)[^\s<>"]{1,2040}$/i;
 
   function isObj(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
@@ -110,5 +111,44 @@
     return set;
   }
 
-  return { VERSION, COMMANDS, IMAGE_TYPES, setupToolbar, THEMES, VIEWS, ZOOM, clampZoom, nextZoom, validateInbound, validateOutbound, buildRenderMessages, buildNotice };
+  // ---------- EMF, WMF and TIFF pictures ----------
+  // media/pictures.js (src/pictures.js) draws them. It loads on the first such picture only, from the
+  // URL in <body data-pictures>, with the nonce of the page's own scripts. Pictures are drawn one
+  // at a time with a pause between them, so the view stays responsive.
+  const PICTURE_NAMES = { 'image/x-emf': 'EMF', 'image/x-wmf': 'WMF', 'image/tiff': 'TIFF', emf: 'EMF', wmf: 'WMF', tif: 'TIFF', tiff: 'TIFF' };
+  let picturesLib = null;
+  let pictureQueue = Promise.resolve();
+  function loadPictures(doc) {
+    if (picturesLib) return picturesLib;
+    picturesLib = new Promise(function (resolve, reject) {
+      const win = doc.defaultView || self;
+      if (win.DocxPictures) { resolve(win.DocxPictures); return; }
+      const src = doc.body && doc.body.getAttribute('data-pictures');
+      if (!src) { reject(new Error('the picture code is missing')); return; }
+      const own = doc.querySelector('script[nonce]');
+      const s = doc.createElement('script');
+      if (own) s.nonce = own.nonce || own.getAttribute('nonce');
+      s.src = src;
+      s.onload = function () { if (win.DocxPictures) resolve(win.DocxPictures); else reject(new Error('the picture code did not start')); };
+      s.onerror = function () { reject(new Error('the picture code did not load')); };
+      doc.head.appendChild(s);
+    });
+    picturesLib.catch(function () { picturesLib = null; });
+    return picturesLib;
+  }
+  // Resolves to a Blob (SVG or PNG); rejects with an Error whose message says why.
+  function drawPicture(doc, bytes, kind, limits) {
+    const job = pictureQueue.then(function () { return new Promise(function (r) { setTimeout(r, 0); }); })
+      .then(function () { return loadPictures(doc); })
+      .then(function (lib) { return lib.draw(bytes, lib.kindOfType(kind) || kind, limits); });
+    pictureQueue = job.catch(function () {});
+    return job;
+  }
+  function pictureName(kind) { return PICTURE_NAMES[String(kind || '').toLowerCase()] || 'picture'; }
+  // "Picture could not be drawn (EMF): <reason>"
+  function pictureMessage(kind, err) {
+    return 'Picture could not be drawn (' + pictureName(kind) + ')' + (err && err.message ? ': ' + String(err.message).slice(0, 160) : '');
+  }
+
+  return { VERSION, COMMANDS, IMAGE_TYPES, PICTURE_NAMES, loadPictures, drawPicture, pictureName, pictureMessage, setupToolbar, THEMES, VIEWS, ZOOM, clampZoom, nextZoom, validateInbound, validateOutbound, buildRenderMessages, buildNotice };
 });

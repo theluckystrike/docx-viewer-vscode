@@ -30,16 +30,47 @@
   }
   applyFont(document.body.dataset.font || '');
 
-  // Pictures arrive as bytes next to the HTML; each becomes a blob: URL.
+  // Pictures arrive as bytes next to the HTML; each becomes a blob: URL. EMF, WMF and TIFF are
+  // drawn first (media/pictures.js, one at a time); until then their <img> waits without a src,
+  // and a picture that cannot be drawn becomes a short note in the text.
   let imageUrls = [];
+  let imageFails = [];
+  let imageGen = 0;
+  const drawnUrls = new Set();
+  function failImage(img, text) {
+    const span = document.createElement('span');
+    span.className = 'dv-img-skipped';
+    span.textContent = '[' + text + ']';
+    img.replaceWith(span);
+  }
   function setImages(list) {
-    imageUrls.forEach(function (u) { URL.revokeObjectURL(u); });
-    imageUrls = list.map(function (im) { return URL.createObjectURL(new Blob([im.data], { type: im.type })); });
+    imageUrls.forEach(function (u) { if (u) URL.revokeObjectURL(u); });
+    const gen = ++imageGen;
+    imageFails = [];
+    imageUrls = list.map(function (im, i) {
+      if (!P.PICTURE_NAMES[im.type]) return URL.createObjectURL(new Blob([im.data], { type: im.type }));
+      // The converter already applied docxViewer.maxImageSizeMB to these bytes.
+      P.drawPicture(document, im.data, im.type, { maxBytes: Infinity }).then(function (blob) {
+        if (gen !== imageGen) return;
+        const u = URL.createObjectURL(blob);
+        imageUrls[i] = u;
+        drawnUrls.add(u);
+        doc.querySelectorAll('img[data-dv-img="' + i + '"]').forEach(function (img) { img.src = u; img.classList.remove('dv-img-drawing'); img.classList.add('dv-drawn'); });
+      }, function (err) {
+        if (gen !== imageGen) return;
+        imageFails[i] = P.pictureMessage(im.type, err);
+        doc.querySelectorAll('img[data-dv-img="' + i + '"]').forEach(function (img) { failImage(img, imageFails[i]); });
+      });
+      return null;
+    });
   }
   function bindImages(root) {
     root.querySelectorAll('img[data-dv-img]').forEach(function (img) {
-      const u = imageUrls[Number(img.getAttribute('data-dv-img'))];
-      if (u) img.src = u;
+      const i = Number(img.getAttribute('data-dv-img'));
+      if (imageFails[i]) { failImage(img, imageFails[i]); return; }
+      const u = imageUrls[i];
+      if (u === null) img.classList.add('dv-img-drawing');
+      else if (u) { img.src = u; if (drawnUrls.has(u)) img.classList.add('dv-drawn'); }
     });
   }
 
@@ -310,6 +341,19 @@
     if (mod && e.key === '0') { e.preventDefault(); zoomBy(0); }
     if (e.key === 'F3') { e.preventDefault(); go(current + (e.shiftKey ? -1 : 1)); }
   });
+
+  // Shift + mouse wheel scrolls sideways: wide tables and pictures (Page view has the same).
+  // The scroller itself first, then the nearest wider block under the pointer (a wide table or
+  // <pre> scrolls inside its own box).
+  scroller.addEventListener('wheel', function (e) {
+    if (!e.shiftKey || e.deltaX || !e.deltaY) return;
+    let el = e.target && e.target.nodeType === 1 ? e.target : e.target && e.target.parentElement;
+    while (el && el !== scroller && !(el.scrollWidth > el.clientWidth + 1 && /(auto|scroll)/.test(getComputedStyle(el).overflowX))) el = el.parentElement;
+    const box = el && el !== scroller ? el : scroller;
+    if (box.scrollWidth <= box.clientWidth + 1) return;
+    box.scrollLeft += e.deltaY;
+    e.preventDefault();
+  }, { passive: false });
 
   let scrollSave = null;
   scroller.addEventListener('scroll', function () {
