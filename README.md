@@ -9,7 +9,7 @@ For developers who get specs, contracts and reports as Word files, DOCX Viewer o
 - Read Word and OpenDocument (.odt) specs, contracts and reports next to your code. The page follows your VS Code theme, or switch to white paper with one click.
 - Find things fast. Search shows a match count, and the outline jumps to any heading.
 - See what changed. Compare a document with its last Git commit, or with another version, in the VS Code diff view. Or copy the whole document as Markdown with tables and footnotes.
-- Open big real-world files. A 47 MB government report with 41 photos opens in about 1.5 seconds, and Page view lays it out in under half a second. The preview reloads when the file changes on disk. The whole extension is a 0.7 MB download and needs no Office or LibreOffice.
+- Open big real-world files. A 47 MB government report with 41 photos opens in about 1.5 seconds, and Page view lays it out in under half a second. The preview reloads when the file changes on disk. The whole extension is a 0.8 MB download and needs no Office or LibreOffice.
 - Works in the browser too. In vscode.dev and github.dev, click a .docx in a GitHub repository and read it without cloning.
 
 ## New in 0.3.2
