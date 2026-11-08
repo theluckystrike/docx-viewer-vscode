@@ -44,7 +44,42 @@ async function workerScriptUrl(fetchImpl) {
   return blobUrl;
 }
 
+// The browser has no per-worker memory cap (desktop stops its worker at 1,536 MB). A zip-bomb part, such as a
+// word/document.xml that unpacks to hundreds of MB, can take the browser process that hosts the extensions past
+// 4 GB and take it down before the time limit fires. So before the worker starts, read the ZIP central directory
+// and refuse XML parts that unpack past the limits below. Real documents are far smaller (the 49 MB JNCC report
+// has under 10 MB of XML). Sizes of 0xFFFFFFFF (ZIP64) count as too large.
+const MAX_XML_PART = 128 * 1024 * 1024;
+const MAX_XML_TOTAL = 384 * 1024 * 1024;
+function zipXmlTooLarge(bytes) {
+  const b = bytes; const n = b.length;
+  if (n < 22 || b[0] !== 0x50 || b[1] !== 0x4b) return null;
+  const u16 = (i) => b[i] | (b[i + 1] << 8);
+  const u32 = (i) => (b[i] | (b[i + 1] << 8) | (b[i + 2] << 16) | (b[i + 3] << 24)) >>> 0;
+  let eocd = -1;
+  for (let i = n - 22; i >= Math.max(0, n - 22 - 65535); i--) if (b[i] === 0x50 && b[i + 1] === 0x4b && b[i + 2] === 5 && b[i + 3] === 6) { eocd = i; break; }
+  if (eocd < 0) return null;
+  let p = u32(eocd + 16); const count = u16(eocd + 10); let total = 0;
+  for (let k = 0; k < count && p + 46 <= n; k++) {
+    if (u32(p) !== 0x02014b50) break;
+    const size = u32(p + 24), nameLen = u16(p + 28), extraLen = u16(p + 30), commentLen = u16(p + 32);
+    let name = ''; for (let j = 0; j < nameLen && p + 46 + j < n; j++) name += String.fromCharCode(b[p + 46 + j]);
+    if (/\.(xml|rels)$/i.test(name)) {
+      if (size === 0xffffffff || size > MAX_XML_PART) return { name, size };
+      total += size;
+      if (total > MAX_XML_TOTAL) return { name: 'the XML parts together', size: total };
+    }
+    p += 46 + nameLen + extraLen + commentLen;
+  }
+  return null;
+}
+
 function convertInWorker(bytes, opts, limits) {
+  const big = zipXmlTooLarge(bytes);
+  if (big) {
+    const mb = big.size === 0xffffffff ? 'more than 4,096' : String(Math.round(big.size / 1048576));
+    return Promise.resolve(errorResult('This document needs too much memory to show', `${big.name} unpacks to ${mb} MB. In the browser DOCX Viewer reads XML parts up to ${MAX_XML_PART / 1048576} MB, because a browser cannot cap the converter's memory. Open the file in desktop VS Code.`));
+  }
   const timeoutMs = (limits && limits.timeoutMs) || 60000;
   const WorkerImpl = (limits && limits.Worker) || (typeof Worker !== 'undefined' ? Worker : null);
   if (!WorkerImpl || !workerUrl) return runInline(bytes, opts);
@@ -81,4 +116,4 @@ function convertInWorker(bytes, opts, limits) {
   });
 }
 
-module.exports = { convertInWorker, configure, lastMode: () => lastMode };
+module.exports = { convertInWorker, configure, lastMode: () => lastMode, zipXmlTooLarge };

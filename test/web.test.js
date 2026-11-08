@@ -316,3 +316,23 @@ test('web runner: a worker error becomes a could-not-read notice, out-of-memory 
     assert.match(r.notice.title, title);
   }
 });
+
+test('web runner: a zip-bomb XML part is refused before the worker starts; real documents pass (VER8)', async () => {
+  const rw = require('../src/web/run-worker');
+  const zlib = require('zlib');
+  // a central directory that declares word/document.xml as 300 MB (the VER8 zip bomb unpacks to that)
+  const name = Buffer.from('word/document.xml');
+  const cd = Buffer.alloc(46); cd.writeUInt32LE(0x02014b50, 0); cd.writeUInt32LE(300 * 1024 * 1024, 24); cd.writeUInt16LE(name.length, 28);
+  const eocd = Buffer.alloc(22); eocd.writeUInt32LE(0x06054b50, 0); eocd.writeUInt16LE(1, 8); eocd.writeUInt16LE(1, 10); eocd.writeUInt32LE(46 + name.length, 12); eocd.writeUInt32LE(4, 16);
+  const bomb = Buffer.concat([Buffer.from('PK\x03\x04'), cd, name, eocd]);
+  assert.deepStrictEqual(rw.zipXmlTooLarge(bomb), { name: 'word/document.xml', size: 300 * 1024 * 1024 });
+  let started = false;
+  class W { constructor() { started = true; } postMessage() {} terminate() {} }
+  const r = await rw.convertInWorker(bomb, { ext: '.docx' }, { Worker: W, fetch: async () => ({ ok: true, text: async () => '' }) });
+  assert.strictEqual(started, false);
+  assert.strictEqual(r.ok, false);
+  assert.match(r.notice.title, /too much memory/);
+  for (const f of fs.readdirSync(FIX).filter(f => /\.(docx|odt)$/i.test(f))) assert.strictEqual(rw.zipXmlTooLarge(fs.readFileSync(path.join(FIX, f))), null, f);
+  assert.strictEqual(rw.zipXmlTooLarge(new Uint8Array([1, 2, 3])), null);
+  void zlib;
+});
