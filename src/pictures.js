@@ -472,17 +472,26 @@ function draw(bytes, kind, limits) {
       const ctx = canvas.getContext('2d');
       if (!ctx) fail('the browser has no canvas');
       ctx.putImageData(new ImageData(new Uint8ClampedArray(t.rgba.buffer, t.rgba.byteOffset, t.width * t.height * 4), t.width, t.height), 0, 0);
-      return canvas.toBlob(function (png) {
-        canvas.width = 1;
-        canvas.height = 1;
-        resolve(png || null);
-      }, 'image/png');
+      // toDataURL is synchronous: toBlob callbacks were slow in a webview that is still laying out.
+      const url = canvas.toDataURL('image/png');
+      canvas.width = 1;
+      canvas.height = 1;
+      return resolve(dataUrlBlob(url));
     }
     fail('the bytes are not an EMF, WMF or TIFF picture');
   }).then(function (blob) {
     if (!blob) fail('the browser could not make the picture');
     return blob;
   });
+}
+
+function dataUrlBlob(url) {
+  const i = url.indexOf(',');
+  if (i < 0 || url.slice(0, i).indexOf('image/png') < 0) return null;
+  const bin = atob(url.slice(i + 1));
+  const out = new Uint8Array(bin.length);
+  for (let k = 0; k < bin.length; k++) out[k] = bin.charCodeAt(k);
+  return new Blob([out], { type: 'image/png' });
 }
 
 async function drawJpegStrips(j) {
@@ -498,7 +507,7 @@ async function drawJpegStrips(j) {
     ctx.drawImage(bmp, 0, i * j.rows);
     if (bmp.close) bmp.close();
   }
-  const png = await new Promise((r) => canvas.toBlob(r, 'image/png'));
+  const png = dataUrlBlob(canvas.toDataURL('image/png'));
   canvas.width = 1;
   canvas.height = 1;
   return png;

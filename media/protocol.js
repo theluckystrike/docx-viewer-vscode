@@ -138,13 +138,23 @@
   }
   // Resolves to a Blob (SVG or PNG); rejects with an Error whose message says why.
   function drawPicture(doc, bytes, kind, limits) {
-    const job = pictureQueue.then(function () { return new Promise(function (r) { setTimeout(r, 0); }); })
+    const job = pictureQueue.then(yieldTask)
       .then(function () { return loadPictures(doc); })
       .then(function (lib) { return lib.draw(bytes, lib.kindOfType(kind) || kind, limits); });
     pictureQueue = job.catch(function () {});
     return job;
   }
-  function pictureName(kind) { return PICTURE_NAMES[String(kind || '').toLowerCase()] || 'picture'; }
+  // A pause that lets the page paint and handle input between pictures. MessageChannel, not
+  // setTimeout: timers in a webview that is still loading can be held back for a second each.
+  function yieldTask() {
+    return new Promise(function (resolve) {
+      if (typeof MessageChannel !== 'function') { setTimeout(resolve, 0); return; }
+      const ch = new MessageChannel();
+      ch.port1.onmessage = function () { ch.port1.close(); resolve(); };
+      ch.port2.postMessage(0);
+    });
+  }
+    function pictureName(kind) { return PICTURE_NAMES[String(kind || '').toLowerCase()] || 'picture'; }
   // "Picture could not be drawn (EMF): <reason>"
   function pictureMessage(kind, err) {
     return 'Picture could not be drawn (' + pictureName(kind) + ')' + (err && err.message ? ': ' + String(err.message).slice(0, 160) : '');
