@@ -1,4 +1,4 @@
-# DOCX Viewer, Word Viewer & DOCX Preview (Dark Mode)
+# DOCX Viewer & ODT Viewer, Word Document Preview (Dark Mode)
 
 For developers who get specs, contracts and reports as Word files, DOCX Viewer opens .docx, .odt and old .doc files in VS Code as a dark-mode preview with an outline, search, tables, charts and equations.
 

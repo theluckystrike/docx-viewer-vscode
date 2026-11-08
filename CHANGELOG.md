@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.3 (2026-11-08)
+
+- The Marketplace name is now "DOCX Viewer & ODT Viewer, Word Document Preview (Dark Mode)" (was "DOCX Viewer, Word Viewer & DOCX Preview (Dark Mode)"), so more searches find it. The extension ID, settings and commands stay the same.
+- The short description now starts with what the name does not say: free and offline, with Page view, search, an outline and a Git compare.
+- The viewer footer now starts with Rate, then More free viewers, Sponsor and Hide. The rating question comes after 2 files that opened without an error in 2 sessions at least 4 hours apart; the sample file does not count.
+
 ## 0.3.2 (2026-11-08)
 
 - EMF, WMF and TIFF pictures now show in Reading view and Page view, on the desktop and on the web. These are the pictures Word keeps for Visio drawings, Excel charts pasted as pictures, old Equation Editor and MathType equations, and scanned TIFF pages. Before, they showed a placeholder. The viewer draws them itself, offline: EMF and WMF as sharp vector pictures with their text, TIFF (LZW, PackBits, Deflate, CCITT fax and uncompressed) as an image of its first page.

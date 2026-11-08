@@ -160,7 +160,7 @@ class DocxEditorProvider {
     }
     if (m.type === 'pageRendered') {
       this.lastPageRender = m;
-      if (!counted.has(panel)) { counted.add(panel); rating.success(); }
+      if (!counted.has(panel)) { counted.add(panel); rating.success(document.uri); }
       return;
     }
     if (m.type === 'setToolbar') return this.setToolbar(m.hidden, panel);
@@ -309,7 +309,7 @@ class DocxEditorProvider {
       if (!this.panels.has(panel)) return;
       await post(m);
     }
-    if (!counted.has(panel)) { counted.add(panel); rating.success(); }
+    if (!counted.has(panel)) { counted.add(panel); rating.success(document.uri); }
   }
 
   activeDocument() {
