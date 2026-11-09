@@ -352,7 +352,7 @@ test('Pro: each Pro feature works 3 times free, then explains itself once per cl
   assert.equal(await pro.gate('exportRedline'), false);
   assert.equal(shown.length, 1);
   assert.match(shown[0][1], /3 free tries/);
-  assert.match(shown[0][1], /USD 15 once/);
+  assert.match(shown[0][1], /USD 19 once/);
   assert.match(shown[0][1], /on-screen redline/);
   assert.equal(await pro.gate('compareFolders'), true); // its own counter
   const licensed = createPro({ vscode, context: stubContext(), license: Object.assign({}, lic, { isPro: () => true }) });

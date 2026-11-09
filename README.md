@@ -2,7 +2,7 @@
 
 For developers who get specs, contracts and reports as Word files, DOCX Viewer opens .docx, .odt and old .doc files in VS Code as a dark-mode preview with an outline, search, tables, charts and equations. New in 0.4: compare Word documents as a redline, with tracked changes you can export to Word.
 
-Free, offline, no sign-in. Optional Zovo Pro (USD 15 once, all Zovo viewers) exports a redline as a Word file with tracked changes and compares two folders of documents. Everything that is free today stays free. The only network call is the optional "Unlock with GitHub Sponsors" button for Zovo Pro, and only when you click it.
+Free, offline, no sign-in. Optional Zovo Pro (USD 19 once, all Zovo viewers) exports a redline as a Word file with tracked changes and compares two folders of documents. Everything that is free today stays free. The only network call is the optional "Unlock with GitHub Sponsors" button for Zovo Pro, and only when you click it.
 
 ![A Word report open in VS Code in dark mode, with the heading outline on the left and a search for revenue on match 1 of 6](https://raw.githubusercontent.com/theluckystrike/docx-viewer-vscode/main/images/vscode-docx-dark.png)
 
@@ -136,8 +136,8 @@ Other DOCX extensions for VS Code are viewers. Their users have asked for exactl
 | "DOCX Viewer: Export Redline as DOCX with Tracked Changes (Pro)" | Saves the open redline as a Word file with tracked changes |
 | "DOCX Viewer: Export Redline as HTML (Pro)" | Saves the open redline as one HTML file |
 | "DOCX Viewer: Compare Two Folders of Documents (Pro)..." | Redlines every pair of same-named documents in two folders |
-| "DOCX Viewer: Zovo: Unlock Pro with GitHub Sponsors" | Unlocks Zovo Pro if you sponsor theluckystrike on GitHub |
-| "DOCX Viewer: Zovo: Get Pro (USD 15 once, all Zovo viewers)" | Opens the GitHub Sponsors page |
+| "DOCX Viewer: Zovo: Unlock Pro with GitHub Sponsors" | Unlocks Zovo Pro if your GitHub account bought the Zovo Pro tier |
+| "DOCX Viewer: Zovo: Get Pro (USD 19 once, all Zovo viewers)" | Opens the Zovo Pro tier on GitHub Sponsors |
 | "DOCX Viewer: Zovo: Enter License Key" | Adds a Zovo Pro license key (checked on your computer) |
 | "DOCX Viewer: Show or Hide the Toolbar" | Hides the toolbar for more reading room, and shows it again (`Ctrl+Shift+H` / `Cmd+Shift+H` in the viewer). The small button at the top right also brings it back. |
 | "DOCX Viewer: Open Sample Document" | Opens a short sample report |
@@ -216,7 +216,7 @@ DOCX Viewer works offline. It makes no network calls and sends no telemetry. The
 
 Everything you could do before stays free: Reading and Page view, search, the outline, tracked changes and comments, Copy as Markdown, the Markdown compare, and the on-screen redline with its change list, filters and side-by-side mode.
 
-Zovo Pro adds the redline exports (DOCX with tracked changes, HTML) and the folder compare. Each one works 3 times on your computer before it asks. Zovo Pro is USD 15 once on [GitHub Sponsors](https://github.com/sponsors/theluckystrike?frequency=one-time) and unlocks the Pro features in every Zovo VS Code viewer. If you have already sponsored USD 10 or more, run "Zovo: Unlock Pro with GitHub Sponsors". No popups on open, no ads, no countdown. Set `docxViewer.showProFeatures` to `false` to hide the Pro buttons and commands.
+Zovo Pro adds the redline exports (DOCX with tracked changes, HTML) and the folder compare. Each one works 3 times on your computer before it asks. Zovo Pro is USD 19 once on GitHub Sponsors (the ["$19 one time" tier](https://github.com/sponsors/theluckystrike/sponsorships?tier_id=679878)) and unlocks the Pro features in every Zovo VS Code viewer. If you bought that tier, or have a monthly sponsorship of USD 10 or more that is still running, run "Zovo: Unlock Pro with GitHub Sponsors". The "$15 one time" and "$5 a month" tiers on the same page are for Obsidian plugins and do not include Zovo Pro. No GitHub account? Send USD 19 to [paypal.com/paypalme/najzzz/19](https://www.paypal.com/paypalme/najzzz/19) with "Zovo Pro" in the note, and you get a license key by email within a day. No popups on open, no ads, no countdown. Set `docxViewer.showProFeatures` to `false` to hide the Pro buttons and commands.
 
 ## Credits
 

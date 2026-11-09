@@ -24,7 +24,7 @@ const FEATURES = {
   }
 };
 
-const PRICE_LINE = 'Zovo Pro is USD 15 once and unlocks the Pro features in every Zovo viewer. Already sponsored theluckystrike on GitHub with USD 10 or more? Choose Unlock with GitHub Sponsors: it asks GitHub one question and sends nothing else.';
+const PRICE_LINE = 'Zovo Pro is USD 19 once and unlocks the Pro features in every Zovo viewer. Already bought the "$19 one time" tier on GitHub Sponsors? Choose Unlock with GitHub Sponsors: it asks GitHub one question and sends nothing else.';
 const FREE_LINE = 'Everything else in DOCX Viewer stays free: Reading and Page view, search, tracked changes, Copy as Markdown, the Markdown compare and the on-screen redline with its change list.';
 
 function createPro({ vscode, context, license, enabled }) {
