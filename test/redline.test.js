@@ -347,18 +347,19 @@ test('Pro: each Pro feature works 3 times free, then explains itself once per cl
   const vscode = { window: { setStatusBarMessage() {} } };
   const pro = createPro({ vscode, context: stubContext(), license: lic });
   assert.equal(pro.label('exportRedline'), 'Pro, 3 free tries');
-  for (let i = 0; i < TRIAL_USES; i++) assert.equal(await pro.gate('exportRedline'), true);
+  for (let i = 0; i < TRIAL_USES; i++) { assert.equal(await pro.check('exportRedline'), true); await pro.commit('exportRedline'); }
   assert.equal(pro.label('exportRedline'), 'Pro');
-  assert.equal(await pro.gate('exportRedline'), false);
+  assert.equal(await pro.check('exportRedline'), false);
   assert.equal(shown.length, 1);
   assert.match(shown[0][1], /3 free tries/);
   assert.match(shown[0][1], /USD 19 once/);
   assert.match(shown[0][1], /on-screen redline/);
-  assert.equal(await pro.gate('compareFolders'), true); // its own counter
+  assert.equal(await pro.check('compareFolders'), true); // its own counter
   const licensed = createPro({ vscode, context: stubContext(), license: Object.assign({}, lic, { isPro: () => true }) });
-  for (let i = 0; i < 5; i++) assert.equal(await licensed.gate('exportRedline'), true);
+  for (let i = 0; i < 5; i++) { assert.equal(await licensed.check('exportRedline'), true); await licensed.commit('exportRedline'); }
+  assert.equal(licensed.left('exportRedline'), 3); // a Pro user never uses tries
   const off = createPro({ vscode, context: stubContext(), license: lic, enabled: false });
-  for (let i = 0; i < 5; i++) assert.equal(await off.gate('exportRedline'), true);
+  for (let i = 0; i < 5; i++) { assert.equal(await off.check('exportRedline'), true); await off.commit('exportRedline'); }
   assert.equal(off.label('exportRedline'), '');
 });
 
@@ -518,7 +519,8 @@ test('Folder compare: pairs files by relative path, writes one HTML redline per 
       commands: { registerCommand: (id, fn) => { cmds[id] = fn; return { dispose() {} }; }, executeCommand: async () => {} },
       env: { openExternal: async () => {} }
     };
-    const pro = { gate: async () => true };
+    const commits = [];
+    const pro = { check: async () => true, commit: async (f) => { commits.push(f); } };
     registerFolders({ vscode, context: { subscriptions: [] }, redline: { open: async () => {} }, pro, isWeb: () => false });
     const r = await cmds['docxViewer.compareFolders']();
     assert.equal(r.results.length, 2);
@@ -533,9 +535,10 @@ test('Folder compare: pairs files by relative path, writes one HTML redline per 
     assert.match(index, /href="Contract%20redline.html"/);
     assert.match(index, /Only in the older folder \(1\)/);
     assert.match(infos[0], /2 pairs compared: 1 changed/);
+    assert.deepEqual(commits, ['compareFolders']); // one try, after index.html was written
     // Pro refused: nothing runs.
     const cmds2 = {};
-    registerFolders({ vscode: Object.assign({}, vscode, { commands: { registerCommand: (id, fn) => { cmds2[id] = fn; return { dispose() {} }; } } }), context: { subscriptions: [] }, redline: null, pro: { gate: async () => false }, isWeb: () => false });
+    registerFolders({ vscode: Object.assign({}, vscode, { commands: { registerCommand: (id, fn) => { cmds2[id] = fn; return { dispose() {} }; } } }), context: { subscriptions: [] }, redline: null, pro: { check: async () => false, commit: async () => { throw new Error('no commit when refused'); } }, isWeb: () => false });
     assert.equal(await cmds2['docxViewer.compareFolders'](), undefined);
     assert.ok(pairsOf(new Map(), new Map()).pairs.length === 0);
   } finally {
@@ -561,8 +564,8 @@ test('Pro (CONV2): the real license facade explains with the buy buttons first, 
   ctx.secrets = { get: async () => undefined, store: async () => {}, delete: async () => {}, onDidChange: () => ({ dispose() {} }) };
   const pro = createPro({ vscode, context: ctx });
   await pro.ready;
-  for (let i = 0; i < TRIAL_USES; i++) await pro.gate('exportRedline');
-  assert.equal(await pro.gate('exportRedline'), false);
+  for (let i = 0; i < TRIAL_USES; i++) await pro.commit('exportRedline');
+  assert.equal(await pro.check('exportRedline'), false);
   assert.deepEqual(modal[0].b, ['Get Zovo Pro', 'Unlock with GitHub Sponsors', 'Pay with PayPal', 'I have a license key']);
   assert.match(modal[0].detail, /How to buy: "Get Zovo Pro" opens the "\$19 one time" tier on GitHub Sponsors/);
   assert.match(modal[0].detail, /USD 59 for a team of 5/);

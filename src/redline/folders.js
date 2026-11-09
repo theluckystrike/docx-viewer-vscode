@@ -58,7 +58,7 @@ function registerFolders({ vscode, context, redline, pro, isWeb }) {
 
   async function compareFolders(arg) {
     if (isWeb && isWeb()) return vscode.window.showInformationMessage('Folder compare needs desktop VS Code.');
-    if (pro && !(await pro.gate('compareFolders'))) return;
+    if (pro && !(await pro.check('compareFolders'))) return;
     const older = arg instanceof vscode.Uri ? arg : await pickFolder('Pick the folder with the OLDER documents', 'Older Folder');
     if (!older) return;
     const newer = await pickFolder('Pick the folder with the NEWER documents', 'Newer Folder', vscode.Uri.joinPath(older, '..'));
@@ -99,6 +99,8 @@ function registerFolders({ vscode, context, redline, pro, isWeb }) {
     const summary = results.length + ' pairs compared: ' + changed + ' changed, ' + (results.length - changed) + ' without text changes or skipped. ' + onlyOld.length + ' only in the older folder, ' + onlyNew.length + ' only in the newer folder.' + (cancelled ? ' Stopped early.' : '');
     const index = vscode.Uri.joinPath(outDir, 'index.html');
     await vscode.workspace.fs.writeFile(index, new TextEncoder().encode(indexHtml(results, { older: older.fsPath || older.path, newer: newer.fsPath || newer.path, date, summary, onlyOld, onlyNew })));
+    // The report is on disk: only now does the run use a free try (a cancelled picker costs nothing).
+    if (pro) await pro.commit('compareFolders');
     const pick = await vscode.window.showInformationMessage(summary, 'Open a Pair', 'Open index.html', 'Reveal Folder');
     if (pick === 'Open index.html') await vscode.env.openExternal(index);
     else if (pick === 'Reveal Folder') await vscode.commands.executeCommand('revealFileInOS', index);

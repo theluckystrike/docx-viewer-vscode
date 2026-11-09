@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.4 (2026-11-10)
+
+- A Compare button in the viewer toolbar (Reading view and Page view) and the command "DOCX Viewer: Compare...". It opens one list: "Compare with Git HEAD" and "Compare with another document" (free), then "Compare two folders" and "Export redline as Word with tracked changes" (Zovo Pro, with the free tries left on this computer). Nothing about Pro shows when a file opens: no badge, no popup.
+- A free try of a Pro tool now counts only after its output is written: the folder report after a folder compare, the saved file after a redline export. Closing a folder picker or the save dialog with Escape keeps the try. Before, a folder compare used a try as soon as the first picker opened.
+- "Export redline as Word" from the Compare list exports the open redline, or first asks for the document to compare this one with and exports when the compare is done.
+- The Zovo Pro commands share one "Zovo Pro" group in the Command Palette, with the same names in every Zovo extension.
+- Everything else in 0.4.3 is unchanged: Reading view, Page view, the redline and its change list, the rating question, the support links and the USD 299 custom format line.
+
 ## 0.4.3 (2026-11-10)
 
 - When a picture cannot be drawn (an EMF, WMF or TIFF that fails, or an image format the viewer does not read) or an old Word or RTF file opens as text only, one line can show next to that note: "Request support for this (free), or we build it for USD 299 once." The first link opens the format request form on GitHub with the kind of element filled in (never the file name or any text from the document). The second opens the GitHub Sponsors tier for custom format support.

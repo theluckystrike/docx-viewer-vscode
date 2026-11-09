@@ -92,6 +92,7 @@ Word files are binary, so `git diff` shows nothing useful for them. DOCX Viewer 
 
 How to start one:
 
+- The Compare button in the viewer toolbar lists every compare: "Compare with Git HEAD" and "Compare with another document" (free), then "Compare two folders" and "Export redline as Word with tracked changes" (Zovo Pro, 3 free tries each). A free try counts only after the file is written, so closing a file picker costs nothing.
 - Two files: select both in the Explorer and pick "Compare Documents (Redline)..." or "Compare with Another Document...", or run it on one file and pick the second. The file changed longest ago goes on the left as the older version; "Swap" in the redline changes that.
 - Git: right-click a `.docx` or `.odt` file in the Explorer or in Source Control and pick "Compare with Git HEAD", or run "Redline against Git HEAD".
 - Any mix works: `.docx`, `.docm`, `.dotx`, `.odt` and old `.doc` files (as text).
@@ -129,6 +130,7 @@ Other DOCX extensions for VS Code are viewers. Their users have asked for exactl
 | "DOCX Viewer: Open as Text" | Opens the plain text in a new untitled editor |
 | "DOCX Viewer: Open as Markdown" | Opens the Markdown in a new untitled editor |
 | "DOCX Viewer: Open in Default App" | Opens the file in Word, Pages or LibreOffice |
+| "DOCX Viewer: Compare..." | The Compare button: every compare in one list, free ones first |
 | "DOCX Viewer: Compare with Git HEAD" | Shows what changed since the last commit, as a redline or a Markdown diff |
 | "DOCX Viewer: Compare with Another Document..." | Shows the differences between two documents, as a redline or a Markdown diff |
 | "DOCX Viewer: Compare Documents (Redline)..." | Opens the redline of two documents directly |
@@ -136,10 +138,10 @@ Other DOCX extensions for VS Code are viewers. Their users have asked for exactl
 | "DOCX Viewer: Export Redline as DOCX with Tracked Changes (Pro)" | Saves the open redline as a Word file with tracked changes |
 | "DOCX Viewer: Export Redline as HTML (Pro)" | Saves the open redline as one HTML file |
 | "DOCX Viewer: Compare Two Folders of Documents (Pro)..." | Redlines every pair of same-named documents in two folders |
-| "DOCX Viewer: Zovo: Unlock Pro with GitHub Sponsors" | Unlocks Zovo Pro if your GitHub account bought the Zovo Pro tier |
-| "DOCX Viewer: Zovo: Get Pro (USD 19 once, all Zovo viewers)" | Opens the Zovo Pro tier on GitHub Sponsors |
-| "DOCX Viewer: Zovo: Pay for Pro with PayPal (USD 19, team of 5 USD 59)" | Shows the PayPal steps and opens PayPal with the amount filled in |
-| "DOCX Viewer: Zovo: Enter License Key" | Adds a Zovo Pro license key (checked on your computer) |
+| "Zovo Pro: Get Zovo Pro (USD 19 once, all 21 Zovo extensions)" | Opens the Zovo Pro tier on GitHub Sponsors |
+| "Zovo Pro: Pay for Zovo Pro with PayPal (USD 19, team of 5 USD 59)" | Shows the PayPal steps and opens PayPal with the amount filled in |
+| "Zovo Pro: I already paid: unlock with GitHub Sponsors" | Unlocks Zovo Pro if your GitHub account bought the Zovo Pro tier |
+| "Zovo Pro: Enter Zovo Pro license key" | Adds a Zovo Pro license key (checked on your computer) |
 | "DOCX Viewer: Show or Hide the Toolbar" | Hides the toolbar for more reading room, and shows it again (`Ctrl+Shift+H` / `Cmd+Shift+H` in the viewer). The small button at the top right also brings it back. |
 | "DOCX Viewer: Open Sample Document" | Opens a short sample report |
 | "DOCX Viewer: Support the developer" | Opens the GitHub Sponsors page |

@@ -234,7 +234,7 @@ function createRedline(deps) {
     const B = await readDoc(Object.assign({ name: b.uri ? path.basename(b.uri.path) : 'newer', label: 'newer' }, b));
     if (!B) return null;
     const panel = new RedlinePanel(host, A, B);
-    panel.run();
+    panel.done = panel.run(); // the Compare menu's export waits for it
     return panel;
   }
 
@@ -243,8 +243,7 @@ function createRedline(deps) {
     if (format === 'docx' && !panel.payload.exportDocx) {
       return vscode.window.showInformationMessage('Export as DOCX needs a Word file (.docx, .docm or .dotx) as the newer document. Export as HTML works for every format, or use Swap if the Word file is the newer one.');
     }
-    if (host.pro && !(await host.pro.gate('exportRedline'))) return;
-    panel.postPro();
+    if (host.pro && !(await host.pro.check('exportRedline'))) return;
     const base = panel.b.name.replace(/\.[^.]+$/, '');
     const ext = format === 'docx' ? (/\.docm$/i.test(panel.b.name) ? '.docm' : '.docx') : '.html';
     const dir = panel.b.uri && panel.b.uri.scheme === 'file' ? vscode.Uri.joinPath(panel.b.uri, '..') : (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0] ? vscode.workspace.workspaceFolders[0].uri : undefined);
@@ -258,6 +257,8 @@ function createRedline(deps) {
     if (!r.ok) return vscode.window.showWarningMessage('DOCX Viewer could not export the redline. ' + ((r.notice && (r.notice.title + '. ' + (r.notice.detail || ''))) || ''));
     const data = format === 'docx' ? r.bytes : new TextEncoder().encode(r.html);
     await vscode.workspace.fs.writeFile(target, data);
+    // The file is saved: only now does the export use a free try (a cancelled save dialog costs nothing).
+    if (host.pro) { await host.pro.commit('exportRedline'); if (panel.a) panel.postPro(); }
     let msg = 'Saved ' + path.basename(target.path) + '.';
     if (format === 'docx') {
       msg = 'Saved ' + path.basename(target.path) + ' with tracked changes by "Compare".';

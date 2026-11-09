@@ -2,7 +2,7 @@
   "name": "docx-viewer-vscode",
   "displayName": "DOCX Viewer & ODT Viewer, Word Document Preview (Dark Mode)",
   "description": "Free and offline. DOCX viewer and Word viewer for VS Code: open .docx, .odt and old .doc files with dark mode, search and outline. Compare Word documents as a redline (DOCX compare and DOCX diff) and export track changes to Word.",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "publisher": "zovo",
   "license": "MIT",
   "icon": "icon.png",
@@ -130,6 +130,12 @@
         "icon": "$(link-external)"
       },
       {
+        "command": "docxViewer.compare",
+        "title": "Compare...",
+        "category": "DOCX Viewer",
+        "icon": "$(git-compare)"
+      },
+      {
         "command": "docxViewer.compareWithHead",
         "title": "Compare with Git HEAD",
         "category": "DOCX Viewer",
@@ -193,29 +199,29 @@
         "category": "DOCX Viewer"
       },
       {
-        "command": "docxViewer.unlockWithSponsors",
-        "title": "Zovo: Unlock Pro with GitHub Sponsors",
-        "category": "DOCX Viewer"
-      },
-      {
         "command": "docxViewer.getPro",
-        "title": "Zovo: Get Pro (USD 19 once, all Zovo viewers)",
-        "category": "DOCX Viewer"
+        "title": "Get Zovo Pro (USD 19 once, all 21 Zovo extensions)",
+        "category": "Zovo Pro"
       },
       {
         "command": "docxViewer.payWithPayPal",
-        "title": "Zovo: Pay for Pro with PayPal (USD 19, team of 5 USD 59)",
-        "category": "DOCX Viewer"
+        "title": "Pay for Zovo Pro with PayPal (USD 19, team of 5 USD 59)",
+        "category": "Zovo Pro"
+      },
+      {
+        "command": "docxViewer.unlockWithSponsors",
+        "title": "I already paid: unlock with GitHub Sponsors",
+        "category": "Zovo Pro"
       },
       {
         "command": "docxViewer.enterLicenseKey",
-        "title": "Zovo: Enter License Key",
-        "category": "DOCX Viewer"
+        "title": "Enter Zovo Pro license key",
+        "category": "Zovo Pro"
       },
       {
         "command": "docxViewer.removeLicense",
-        "title": "Zovo: Remove License from This Editor",
-        "category": "DOCX Viewer"
+        "title": "Remove Zovo Pro from this editor",
+        "category": "Zovo Pro"
       }
     ],
     "keybindings": [
@@ -253,6 +259,11 @@
           "command": "docxViewer.openInDefaultApp",
           "when": "activeCustomEditorId == 'docxViewer.preview' && !isWeb",
           "group": "1_docx@2"
+        },
+        {
+          "command": "docxViewer.compare",
+          "when": "activeCustomEditorId == 'docxViewer.preview'",
+          "group": "1_docx@3"
         },
         {
           "command": "docxViewer.compareWithHead",

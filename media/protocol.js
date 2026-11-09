@@ -8,7 +8,7 @@
   'use strict';
   const VERSION = 1;
   // webview -> extension
-  const COMMANDS = ['openAsText', 'copyMarkdown', 'openInDefaultApp', 'openAnyway', 'reload', 'openSettings', 'showPage', 'showReading', 'pageAnyway', 'revMarkup', 'revFinal', 'revOriginal'];
+  const COMMANDS = ['openAsText', 'copyMarkdown', 'openInDefaultApp', 'openAnyway', 'reload', 'openSettings', 'showPage', 'showReading', 'pageAnyway', 'revMarkup', 'revFinal', 'revOriginal', 'compare'];
   const THEMES = ['auto', 'light', 'dark'];
   const VIEWS = ['reading', 'page'];
   const PAGE_FAILURES = ['error', 'timeout', 'empty'];

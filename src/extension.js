@@ -12,6 +12,7 @@ const { registerCompare } = require('./compare');
 const { createRedline } = require('./redline/panel');
 const { registerFolders } = require('./redline/folders');
 const { createPro } = require('./pro');
+const { createCompareMenu } = require('./compare-menu');
 const { createCustomOffer } = require('./custom-offer');
 
 let rating = { success() {}, failure() {} };
@@ -192,6 +193,7 @@ class DocxEditorProvider {
       case 'openAnyway': document.allowLarge = true; document.invalidate(); return this.render(panel, document);
       case 'reload': document.invalidate(); return this.render(panel, document);
       case 'showPage': return this.switchView(panel, document, 'page', true);
+      case 'compare': return this.compareMenu ? this.compareMenu.menu(document.uri) : undefined;
       case 'showReading': return this.switchView(panel, document, 'reading', true);
       case 'pageAnyway': document.allowLargePage = true; return this.switchView(panel, document, 'page', false);
       case 'revMarkup': document.revMode = 'markup'; return this.render(panel, document);
@@ -400,7 +402,7 @@ function activate(context) {
     for (const c of ['enterLicenseKey', 'getPro', 'payWithPayPal', 'removeLicense', 'unlockWithSponsors']) context.subscriptions.push(vscode.commands.registerCommand('docxViewer.' + c, later));
   }
   const redline = isWeb() ? null : createRedline({ vscode, context, rating, pro, cfg });
-  registerCompare({
+  const compare = registerCompare({
     vscode, context,
     convertUri: (uri) => provider.load(documentFor(uri, provider)),
     convertBytes,
@@ -409,7 +411,11 @@ function activate(context) {
     redline,
     isWeb
   });
-  registerFolders({ vscode, context, redline, pro, isWeb });
+  const folders = registerFolders({ vscode, context, redline, pro, isWeb });
+  // Toolbar "Compare" button and command: the free compares, then the 2 Pro tools with their free tries (CONV3 fix 5).
+  const compareMenu = createCompareMenu({ vscode, pro, compare, redline, folders: isWeb() ? null : folders, isWeb, activeUri: () => { const d = provider.activeDocument(); return d ? d.uri : null; } });
+  provider.compareMenu = compareMenu;
+  context.subscriptions.push(vscode.commands.registerCommand('docxViewer.compare', (arg) => compareMenu.menu(arg)));
   const noRedline = () => vscode.window.showInformationMessage('The redline compare needs desktop VS Code.');
   context.subscriptions.push(
     vscode.commands.registerCommand('docxViewer.exportRedlineDocx', () => (redline ? redline.exportActive('docx') : noRedline())),

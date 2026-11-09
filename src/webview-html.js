@@ -52,6 +52,7 @@ ${footer ? `<style nonce="${n}">${FOOTER_CSS}</style>` : ''}
  ${zoomControls(false)}
   <button type="button" id="dv-theme" class="dv-btn" title="Page theme: follow VS Code, light paper or dark">Theme: Auto</button>
   ${opts.pageAvailable ? '<button type="button" id="dv-view" class="dv-btn" data-cmd="showPage" title="Show the pages the way Word lays them out">Page view</button>' : ''}
+  <button type="button" class="dv-btn" data-cmd="compare" title="Compare this document with Git HEAD or with another document (free). Also: compare two folders, export a Word redline (Zovo Pro, 3 free tries each)">Compare</button>
   <button type="button" class="dv-btn" data-cmd="copyMarkdown" title="Copy the whole document as Markdown">Copy Markdown</button>
   <button type="button" class="dv-btn" data-cmd="openAsText" title="Open the plain text in a new editor">Open as Text</button>
   <button type="button" id="dv-bar-hide" class="dv-btn dv-icon" title="Hide the toolbar (Ctrl+Shift+H)" aria-label="Hide the toolbar">&#8963;</button>
@@ -147,6 +148,7 @@ ${footer ? `<style>${FOOTER_CSS}</style>` : ''}
   ${zoomControls(true)}
   <button type="button" id="dv-theme" class="dv-btn" title="Page theme: follow VS Code, light paper or dark">Theme: Auto</button>
   <button type="button" id="dv-view" class="dv-btn" data-cmd="showReading" title="Show the text as one flowing column">Reading view</button>
+  <button type="button" class="dv-btn" data-cmd="compare" title="Compare this document with Git HEAD or with another document (free). Also: compare two folders, export a Word redline (Zovo Pro, 3 free tries each)">Compare</button>
   <button type="button" class="dv-btn" data-cmd="copyMarkdown" title="Copy the whole document as Markdown">Copy Markdown</button>
   <button type="button" class="dv-btn" data-cmd="openAsText" title="Open the plain text in a new editor">Open as Text</button>
   <button type="button" id="dv-bar-hide" class="dv-btn dv-icon" title="Hide the toolbar (Ctrl+Shift+H)" aria-label="Hide the toolbar">&#8963;</button>
