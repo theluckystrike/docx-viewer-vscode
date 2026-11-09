@@ -542,3 +542,33 @@ test('Folder compare: pairs files by relative path, writes one HTML redline per 
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('Pro (CONV2): the real license facade explains with the buy buttons first, the how-to-buy line and the PayPal form for DOCX Viewer', async () => {
+  const modal = []; const opened = [];
+  const vscode = {
+    Uri: { parse: (s) => ({ toString: () => s, s }) },
+    env: { openExternal: async (u) => { opened.push(u.s); return true; } },
+    window: {
+      setStatusBarMessage() {},
+      showInformationMessage: async (msg, o, ...b) => { if (o && o.modal) { modal.push({ msg, detail: o.detail, b }); return msg.startsWith('Pay for') ? 'Send the transaction ID' : 'Pay with PayPal'; } return undefined; },
+      showWarningMessage: async () => undefined,
+      showInputBox: async () => undefined,
+      showQuickPick: async () => undefined,
+    },
+    commands: { registerCommand: () => ({ dispose() {} }) },
+  };
+  const ctx = stubContext();
+  ctx.secrets = { get: async () => undefined, store: async () => {}, delete: async () => {}, onDidChange: () => ({ dispose() {} }) };
+  const pro = createPro({ vscode, context: ctx });
+  await pro.ready;
+  for (let i = 0; i < TRIAL_USES; i++) await pro.gate('exportRedline');
+  assert.equal(await pro.gate('exportRedline'), false);
+  assert.deepEqual(modal[0].b, ['Get Zovo Pro', 'Pay with PayPal', 'Unlock with GitHub Sponsors', 'I have a license key']);
+  assert.match(modal[0].detail, /How to buy: "Get Zovo Pro" opens the "\$19 one time" tier on GitHub Sponsors/);
+  assert.match(modal[0].detail, /USD 59 for a team of 5/);
+  assert.equal(modal[1].msg, 'Pay for Zovo Pro with PayPal');
+  assert.deepEqual(opened, ['https://github.com/theluckystrike/zovo-plugin-factory/issues/new?template=zovo-pro-key.yml&title=Zovo%20Pro%20key%3A%20PayPal%20payment%20for%20DOCX%20Viewer&product=DOCX%20Viewer']);
+  const pk = require('../package.json');
+  assert.ok(pk.contributes.commands.find((c) => c.command === 'docxViewer.payWithPayPal'));
+  assert.ok(pk.contributes.menus.commandPalette.find((c) => c.command === 'docxViewer.payWithPayPal' && /showProFeatures/.test(c.when)));
+});

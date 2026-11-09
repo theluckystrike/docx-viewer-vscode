@@ -24,12 +24,14 @@ const FEATURES = {
   }
 };
 
-const PRICE_LINE = 'Zovo Pro is USD 19 once and unlocks the Pro features in every Zovo viewer. Already bought the "$19 one time" tier on GitHub Sponsors? Choose Unlock with GitHub Sponsors: it asks GitHub one question and sends nothing else.';
+// The facade (src/license) adds the "How to buy" paragraph: the USD 19 tier on GitHub Sponsors, PayPal USD 19 or
+// USD 59 for a team of 5 (CONV2).
+const PRICE_LINE = 'Zovo Pro is USD 19 once, for life, and unlocks the Pro features in every Zovo viewer. Unlock with GitHub Sponsors asks GitHub one question and sends nothing else.';
 const FREE_LINE = 'Everything else in DOCX Viewer stays free: Reading and Page view, search, tracked changes, Copy as Markdown, the Markdown compare and the on-screen redline with its change list.';
 
 function createPro({ vscode, context, license, enabled }) {
   const on = enabled === undefined ? PRO_ENABLED : enabled;
-  const lic = license || createLicense({ vscode, context, sku: SKU, name: 'Zovo', commandPrefix: 'docxViewer' });
+  const lic = license || createLicense({ vscode, context, sku: SKU, name: 'Zovo', product: 'DOCX Viewer', commandPrefix: 'docxViewer' });
   const used = (f) => Number((context.globalState.get(TRIAL_KEY) || {})[f]) || 0;
   const left = (f) => (FEATURES[f] ? Math.max(0, TRIAL_USES - used(f)) : 0);
 

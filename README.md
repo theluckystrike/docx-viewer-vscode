@@ -138,6 +138,7 @@ Other DOCX extensions for VS Code are viewers. Their users have asked for exactl
 | "DOCX Viewer: Compare Two Folders of Documents (Pro)..." | Redlines every pair of same-named documents in two folders |
 | "DOCX Viewer: Zovo: Unlock Pro with GitHub Sponsors" | Unlocks Zovo Pro if your GitHub account bought the Zovo Pro tier |
 | "DOCX Viewer: Zovo: Get Pro (USD 19 once, all Zovo viewers)" | Opens the Zovo Pro tier on GitHub Sponsors |
+| "DOCX Viewer: Zovo: Pay for Pro with PayPal (USD 19, team of 5 USD 59)" | Shows the PayPal steps and opens PayPal with the amount filled in |
 | "DOCX Viewer: Zovo: Enter License Key" | Adds a Zovo Pro license key (checked on your computer) |
 | "DOCX Viewer: Show or Hide the Toolbar" | Hides the toolbar for more reading room, and shows it again (`Ctrl+Shift+H` / `Cmd+Shift+H` in the viewer). The small button at the top right also brings it back. |
 | "DOCX Viewer: Open Sample Document" | Opens a short sample report |
@@ -216,7 +217,12 @@ DOCX Viewer works offline. It makes no network calls and sends no telemetry. The
 
 Everything you could do before stays free: Reading and Page view, search, the outline, tracked changes and comments, Copy as Markdown, the Markdown compare, and the on-screen redline with its change list, filters and side-by-side mode.
 
-Zovo Pro adds the redline exports (DOCX with tracked changes, HTML) and the folder compare. Each one works 3 times on your computer before it asks. Zovo Pro is USD 19 once on GitHub Sponsors (the ["$19 one time" tier](https://github.com/sponsors/theluckystrike/sponsorships?tier_id=679878)) and unlocks the Pro features in every Zovo VS Code viewer. If you bought that tier, or have a monthly sponsorship of USD 10 or more that is still running, run "Zovo: Unlock Pro with GitHub Sponsors". The "$15 one time" and "$5 a month" tiers on the same page are for Obsidian plugins and do not include Zovo Pro. No GitHub account? Send USD 19 to [paypal.com/paypalme/najzzz/19](https://www.paypal.com/paypalme/najzzz/19) with "Zovo Pro" in the note, and you get a license key by email within a day. No popups on open, no ads, no countdown. Set `docxViewer.showProFeatures` to `false` to hide the Pro buttons and commands.
+Zovo Pro adds the redline exports (DOCX with tracked changes, HTML) and the folder compare. Each one works 3 times on your computer before it asks. Zovo Pro is USD 19 once, for life, and unlocks the Pro features in every Zovo VS Code viewer. A team of 5 pays USD 59 once by PayPal and shares one key. After the free tries, the Pro window has the buttons "Get Zovo Pro", "Pay with PayPal", "Unlock with GitHub Sponsors" and "I have a license key".
+
+- GitHub Sponsors: "Get Zovo Pro" opens the ["$19 one time" tier](https://github.com/sponsors/theluckystrike/sponsorships?tier_id=679878). Pay there, come back to VS Code and choose "Unlock with GitHub Sponsors" (DOCX Viewer asks once when you are back). VS Code signs you in to GitHub and DOCX Viewer asks GitHub whether this account bought the tier. A monthly sponsorship of USD 10 or more also works while it runs. The "$15 one time" and "$5 a month" tiers on the same page are for Obsidian plugins and do not include Zovo Pro.
+- PayPal: "Pay with PayPal" shows the steps and opens PayPal with [USD 19 for one person](https://www.paypal.com/paypalme/najzzz/19USD) or [USD 59 for a team of 5](https://www.paypal.com/paypalme/najzzz/59USD). Send the transaction ID from the PayPal receipt with the [Zovo Pro key form](https://github.com/theluckystrike/zovo-plugin-factory/issues/new?template=zovo-pro-key.yml) (it is public, so post only the ID; no GitHub account: write "Zovo Pro" in the PayPal note). The license key comes to the email address of your PayPal account. Paste it with "Zovo: Enter License Key".
+
+No popups on open, no ads, no countdown. The only message you get without clicking a Pro feature is the one after "Get Zovo Pro" or a PayPal button: when you are back in VS Code it asks once, within 2 hours, whether you want to finish the unlock. Set `docxViewer.showProFeatures` to `false` to hide the Pro buttons and commands.
 
 ## Credits
 

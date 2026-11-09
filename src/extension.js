@@ -385,7 +385,7 @@ function activate(context) {
   const pro = isWeb() ? null : createPro({ vscode, context });
   if (!pro) {
     const later = () => vscode.window.showInformationMessage('Zovo Pro features (redline export, folder compare) need desktop VS Code.');
-    for (const c of ['enterLicenseKey', 'getPro', 'removeLicense', 'unlockWithSponsors']) context.subscriptions.push(vscode.commands.registerCommand('docxViewer.' + c, later));
+    for (const c of ['enterLicenseKey', 'getPro', 'payWithPayPal', 'removeLicense', 'unlockWithSponsors']) context.subscriptions.push(vscode.commands.registerCommand('docxViewer.' + c, later));
   }
   const redline = isWeb() ? null : createRedline({ vscode, context, rating, pro, cfg });
   registerCompare({
