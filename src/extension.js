@@ -9,6 +9,9 @@ const P = require('../media/protocol');
 const { createRatingPrompt } = require('./rate');
 const { registerSupport, commandUris, showLinks } = require('./support');
 const { registerCompare } = require('./compare');
+const { createRedline } = require('./redline/panel');
+const { registerFolders } = require('./redline/folders');
+const { createPro } = require('./pro');
 
 let rating = { success() {}, failure() {} };
 const counted = new WeakSet(); // panels already counted for the rating prompt
@@ -378,13 +381,28 @@ function activate(context) {
   rating = createRatingPrompt({ vscode, context, extensionId: 'zovo.docx-viewer-vscode', section: 'docxViewer', name: 'DOCX Viewer' });
   registerSupport({ vscode, context, prefix: 'docxViewer', selfId: 'zovo.docx-viewer-vscode' });
   const provider = new DocxEditorProvider(context);
+  // Zovo Pro (src/pro.js): redline export and folder compare. Local checks only; no network on start.
+  const pro = isWeb() ? null : createPro({ vscode, context });
+  if (!pro) {
+    const later = () => vscode.window.showInformationMessage('Zovo Pro features (redline export, folder compare) need desktop VS Code.');
+    for (const c of ['enterLicenseKey', 'getPro', 'removeLicense', 'unlockWithSponsors']) context.subscriptions.push(vscode.commands.registerCommand('docxViewer.' + c, later));
+  }
+  const redline = isWeb() ? null : createRedline({ vscode, context, rating, pro, cfg });
   registerCompare({
     vscode, context,
     convertUri: (uri) => provider.load(documentFor(uri, provider)),
     convertBytes,
     maxBytes: () => cfg().maxFileBytes,
-    activeUri: () => { const d = provider.activeDocument(); return d ? d.uri : null; }
+    activeUri: () => { const d = provider.activeDocument(); return d ? d.uri : null; },
+    redline,
+    isWeb
   });
+  registerFolders({ vscode, context, redline, pro, isWeb });
+  const noRedline = () => vscode.window.showInformationMessage('The redline compare needs desktop VS Code.');
+  context.subscriptions.push(
+    vscode.commands.registerCommand('docxViewer.exportRedlineDocx', () => (redline ? redline.exportActive('docx') : noRedline())),
+    vscode.commands.registerCommand('docxViewer.exportRedlineHtml', () => (redline ? redline.exportActive('html') : noRedline()))
+  );
   context.subscriptions.push(
     vscode.window.registerCustomEditorProvider(VIEW_TYPE, provider, {
       supportsMultipleEditorsPerDocument: true,
@@ -420,7 +438,7 @@ function activate(context) {
       }
     })
   );
-  return { provider };
+  return { provider, redline, pro };
 }
 
 function deactivate() {}

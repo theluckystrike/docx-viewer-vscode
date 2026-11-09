@@ -143,7 +143,8 @@ test('package.json opens .doc and .dot by default and offers the Explorer comman
   const sel = pj.contributes.customEditors[0].selector.map((s) => s.filenamePattern);
   assert.ok(sel.includes('*.doc') && sel.includes('*.dot'));
   assert.strictEqual(pj.contributes.customEditors[0].priority, 'default');
-  for (const m of pj.contributes.menus['explorer/context']) assert.match(m.when, /\|doc\|dot\)\$/);
+  // File commands cover .doc and .dot; the folder compare entry is for folders only.
+  for (const m of pj.contributes.menus['explorer/context']) if (!/^explorerResourceIsFolder/.test(m.when)) assert.match(m.when, /\|doc\|dot\)\$/);
 });
 
 test('bundle: the worker build has word-extractor but no saxes or yauzl, and all licenses are allowed', async () => {

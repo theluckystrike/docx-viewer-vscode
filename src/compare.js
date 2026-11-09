@@ -1,7 +1,9 @@
 'use strict';
-// "Compare with Git HEAD" and "Compare with another document": both documents are converted to
-// Markdown and shown in VS Code's own diff editor, so changed words, rows and headings are marked.
-// The read side is a read-only text provider. Nothing leaves the machine; git runs locally.
+// "Compare with Git HEAD" and "Compare with another document". Two views:
+//   Redline (src/redline): the formatted document with word-level insertions, deletions, moves, table cells and
+//   formatting changes, a change list, and exports (tracked-changes .docx, HTML).
+//   Markdown diff: both documents as Markdown in VS Code's own diff editor (a read-only text provider).
+// The setting docxViewer.compareView picks one or asks. Nothing leaves the machine; git runs locally.
 
 const path = require('path');
 const { execFile } = require('child_process');
@@ -66,7 +68,7 @@ async function readFromHead(fsPath, maxBytes, exec) {
 
 // Registers the provider and the two commands. convertUri(uri) and convertBytes(bytes, name) return the
 // converter result ({ ok, markdown } or { ok: false, notice }).
-function registerCompare({ vscode, context, convertUri, convertBytes, maxBytes, activeUri, exec }) {
+function registerCompare({ vscode, context, convertUri, convertBytes, maxBytes, activeUri, exec, redline, isWeb }) {
   const store = new DiffStore();
   const emitter = new vscode.EventEmitter();
   context.subscriptions.push(
@@ -93,11 +95,37 @@ function registerCompare({ vscode, context, convertUri, convertBytes, maxBytes, 
     await vscode.commands.executeCommand('vscode.diff', virtualUri(left.label, left.name, left.md), virtualUri(right.label, right.name, right.md), title, { preview: false });
   }
 
-  async function compareWithHead(arg) {
+  // 'redline' | 'markdown' | null (cancelled). The redline needs desktop VS Code (it runs in a worker thread).
+  async function pickView(forced) {
+    if (!redline || (isWeb && isWeb())) return 'markdown';
+    if (forced) return forced;
+    const setting = vscode.workspace.getConfiguration('docxViewer').get('compareView', 'ask');
+    if (setting === 'redline' || setting === 'markdown') return setting;
+    const last = context.globalState ? context.globalState.get('docxViewer.lastCompareView') : null;
+    const items = [
+      { label: '$(diff) Redline', description: 'formatted, with a change list', detail: 'Insertions underlined, deletions struck through, moves, table cells and formatting changes. Export as tracked-changes DOCX or HTML.', view: 'redline' },
+      { label: '$(markdown) Markdown diff', description: 'text in the VS Code diff editor', detail: 'Both documents as Markdown side by side, with VS Code\'s own diff navigation.', view: 'markdown' }
+    ];
+    if (last === 'markdown') items.reverse();
+    const pick = await vscode.window.showQuickPick(items, { title: 'Compare documents', placeHolder: 'How do you want to see the changes? (setting: docxViewer.compareView)' });
+    if (!pick) return null;
+    if (context.globalState) await context.globalState.update('docxViewer.lastCompareView', pick.view);
+    return pick.view;
+  }
+
+  async function compareWithHead(arg, _sel, forced) {
     const uri = arg instanceof vscode.Uri ? arg : (arg && arg.resourceUri instanceof vscode.Uri ? arg.resourceUri : activeUri());
     if (!uri) return vscode.window.showInformationMessage('Open a Word or OpenDocument file first, or right-click one in the Explorer.');
     if (uri.scheme !== 'file') return vscode.window.showInformationMessage('Compare with Git HEAD works on files on this computer only.');
     if (!vscode.workspace.isTrusted) return vscode.window.showInformationMessage('Compare with Git HEAD runs git, so it needs a trusted workspace. Trust this folder first, or use "Compare with Another Document".');
+    const view = await pickView(forced);
+    if (!view) return;
+    if (view === 'redline') {
+      const head = await readFromHead(uri.fsPath, maxBytes(), exec);
+      if (!head.ok) return vscode.window.showWarningMessage('DOCX Viewer: ' + head.message);
+      const name = path.basename(uri.fsPath);
+      return redline.open({ bytes: head.bytes, name, label: 'HEAD' }, { uri, name, label: 'Working Tree' });
+    }
     return vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'DOCX Viewer: comparing with Git HEAD' }, async () => {
       const head = await readFromHead(uri.fsPath, maxBytes(), exec);
       if (!head.ok) return vscode.window.showWarningMessage('DOCX Viewer: ' + head.message);
@@ -111,7 +139,7 @@ function registerCompare({ vscode, context, convertUri, convertBytes, maxBytes, 
     });
   }
 
-  async function compareWithOther(arg, selected) {
+  async function compareWithOther(arg, selected, forced) {
     let a = arg instanceof vscode.Uri ? arg : activeUri();
     let b = null;
     if (Array.isArray(selected)) {
@@ -119,14 +147,23 @@ function registerCompare({ vscode, context, convertUri, convertBytes, maxBytes, 
       if (docs.length === 2) { a = docs[0]; b = docs[1]; }
     }
     if (!a) {
-      const picked = await vscode.window.showOpenDialog({ canSelectMany: false, openLabel: 'Compare', title: 'Pick the first document', filters: { 'Word and OpenDocument': ['docx', 'dotx', 'docm', 'odt', 'ott'] } });
+      const picked = await vscode.window.showOpenDialog({ canSelectMany: false, openLabel: 'Compare', title: 'Pick the first document', filters: { 'Word and OpenDocument': ['docx', 'dotx', 'docm', 'odt', 'ott', 'doc', 'dot'] } });
       if (!picked || !picked[0]) return;
       a = picked[0];
     }
     if (!b) {
-      const picked = await vscode.window.showOpenDialog({ canSelectMany: false, openLabel: 'Compare', title: 'Compare ' + path.basename(a.path) + ' with', defaultUri: vscode.Uri.joinPath(a, '..'), filters: { 'Word and OpenDocument': ['docx', 'dotx', 'docm', 'odt', 'ott'] } });
+      const picked = await vscode.window.showOpenDialog({ canSelectMany: false, openLabel: 'Compare', title: 'Compare ' + path.basename(a.path) + ' with', defaultUri: vscode.Uri.joinPath(a, '..'), filters: { 'Word and OpenDocument': ['docx', 'dotx', 'docm', 'odt', 'ott', 'doc', 'dot'] } });
       if (!picked || !picked[0]) return;
       b = picked[0];
+    }
+    const view = await pickView(forced);
+    if (!view) return;
+    if (view === 'redline') {
+      // The older file goes on the left. Modification times decide; the Swap button in the redline changes it.
+      const [older, newer] = await orderByTime(a, b);
+      const on = path.basename(older.path);
+      const nn = path.basename(newer.path);
+      return redline.open({ uri: older, name: on, label: 'older' }, { uri: newer, name: nn, label: 'newer' });
     }
     return vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'DOCX Viewer: comparing documents' }, async () => {
       const leftMd = await markdownOf(await convertUri(a), path.basename(a.path));
@@ -139,11 +176,21 @@ function registerCompare({ vscode, context, convertUri, convertBytes, maxBytes, 
     });
   }
 
+  async function orderByTime(a, b) {
+    try {
+      const [sa, sb] = await Promise.all([vscode.workspace.fs.stat(a), vscode.workspace.fs.stat(b)]);
+      if (sb.mtime < sa.mtime) return [b, a];
+    } catch (_) { /* keep the order */ }
+    return [a, b];
+  }
+
   context.subscriptions.push(
     vscode.commands.registerCommand('docxViewer.compareWithHead', compareWithHead),
-    vscode.commands.registerCommand('docxViewer.compareWithDocument', compareWithOther)
+    vscode.commands.registerCommand('docxViewer.compareWithDocument', compareWithOther),
+    vscode.commands.registerCommand('docxViewer.compareRedline', (arg, sel) => compareWithOther(arg, sel, 'redline')),
+    vscode.commands.registerCommand('docxViewer.compareWithHeadRedline', (arg) => compareWithHead(arg, null, 'redline'))
   );
-  return { compareWithHead, compareWithOther, store };
+  return { compareWithHead, compareWithOther, pickView, store };
 }
 
 module.exports = { registerCompare, readFromHead, runGit, DiffStore, diffPath, diffTitle, isDocument, SCHEME };

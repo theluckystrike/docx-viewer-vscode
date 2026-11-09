@@ -1,8 +1,8 @@
 {
   "name": "docx-viewer-vscode",
   "displayName": "DOCX Viewer & ODT Viewer, Word Document Preview (Dark Mode)",
-  "description": "Free and offline. Page view, search, outline, Git compare. DOCX viewer and Word viewer for VS Code: open .docx, .odt and old .doc files as a read-only preview with dark mode, equations and charts, all offline.",
-  "version": "0.3.3",
+  "description": "Free and offline. DOCX viewer and Word viewer for VS Code: open .docx, .odt and old .doc files with dark mode, search and outline. Compare Word documents as a redline (DOCX compare and DOCX diff) and export track changes to Word.",
+  "version": "0.4.0",
   "publisher": "zovo",
   "license": "MIT",
   "icon": "icon.png",
@@ -31,7 +31,6 @@
     "docx viewer",
     "word viewer",
     "doc viewer",
-    "ms word",
     "microsoft word",
     "word document",
     "docx preview",
@@ -39,24 +38,25 @@
     "document viewer",
     "document preview",
     "office viewer",
-    "office",
     "read docx",
     "open docx",
     "dotx",
     "docm",
     "doc",
     "word reader",
-    "outline",
-    "search",
     "docx to markdown",
     "word to markdown",
     "docx to text",
-    "footnotes",
-    "tables",
     "docx diff",
     "docx reader",
     "odt",
-    "odt viewer"
+    "odt viewer",
+    "compare word documents",
+    "docx compare",
+    "word compare",
+    "redline",
+    "track changes",
+    "document compare"
   ],
   "main": "./out/extension.js",
   "browser": "./out/web/extension.js",
@@ -142,6 +142,32 @@
         "icon": "$(diff)"
       },
       {
+        "command": "docxViewer.compareRedline",
+        "title": "Compare Documents (Redline)...",
+        "category": "DOCX Viewer",
+        "icon": "$(diff-multiple)"
+      },
+      {
+        "command": "docxViewer.compareWithHeadRedline",
+        "title": "Redline against Git HEAD",
+        "category": "DOCX Viewer"
+      },
+      {
+        "command": "docxViewer.exportRedlineDocx",
+        "title": "Export Redline as DOCX with Tracked Changes (Pro)",
+        "category": "DOCX Viewer"
+      },
+      {
+        "command": "docxViewer.exportRedlineHtml",
+        "title": "Export Redline as HTML (Pro)",
+        "category": "DOCX Viewer"
+      },
+      {
+        "command": "docxViewer.compareFolders",
+        "title": "Compare Two Folders of Documents (Pro)...",
+        "category": "DOCX Viewer"
+      },
+      {
         "command": "docxViewer.openSample",
         "title": "Open Sample Document",
         "category": "DOCX Viewer"
@@ -164,6 +190,26 @@
       {
         "command": "docxViewer.moreViewers",
         "title": "More free viewers",
+        "category": "DOCX Viewer"
+      },
+      {
+        "command": "docxViewer.unlockWithSponsors",
+        "title": "Zovo: Unlock Pro with GitHub Sponsors",
+        "category": "DOCX Viewer"
+      },
+      {
+        "command": "docxViewer.getPro",
+        "title": "Zovo: Get Pro (USD 15 once, all Zovo viewers)",
+        "category": "DOCX Viewer"
+      },
+      {
+        "command": "docxViewer.enterLicenseKey",
+        "title": "Zovo: Enter License Key",
+        "category": "DOCX Viewer"
+      },
+      {
+        "command": "docxViewer.removeLicense",
+        "title": "Zovo: Remove License from This Editor",
         "category": "DOCX Viewer"
       }
     ],
@@ -212,6 +258,11 @@
           "command": "docxViewer.compareWithDocument",
           "when": "activeCustomEditorId == 'docxViewer.preview'",
           "group": "1_docx@4"
+        },
+        {
+          "command": "docxViewer.compareRedline",
+          "when": "activeCustomEditorId == 'docxViewer.preview' && !isWeb",
+          "group": "1_docx@5"
         }
       ],
       "explorer/context": [
@@ -234,6 +285,16 @@
           "command": "docxViewer.compareWithDocument",
           "when": "resourceExtname =~ /^\\.(docx|dotx|docm|odt|ott|doc|dot)$/i && !explorerResourceIsFolder",
           "group": "7_docx@4"
+        },
+        {
+          "command": "docxViewer.compareRedline",
+          "when": "resourceExtname =~ /^\\.(docx|dotx|docm|odt|ott|doc|dot)$/i && !explorerResourceIsFolder && !isWeb",
+          "group": "7_docx@5"
+        },
+        {
+          "command": "docxViewer.compareFolders",
+          "when": "explorerResourceIsFolder && !isWeb",
+          "group": "7_docx@6"
         }
       ],
       "commandPalette": [
@@ -251,6 +312,26 @@
         },
         {
           "command": "docxViewer.openInDefaultApp",
+          "when": "!isWeb"
+        },
+        {
+          "command": "docxViewer.exportRedlineDocx",
+          "when": "activeWebviewPanelId == 'docxViewer.redline'"
+        },
+        {
+          "command": "docxViewer.exportRedlineHtml",
+          "when": "activeWebviewPanelId == 'docxViewer.redline'"
+        },
+        {
+          "command": "docxViewer.compareRedline",
+          "when": "!isWeb"
+        },
+        {
+          "command": "docxViewer.compareWithHeadRedline",
+          "when": "!isWeb"
+        },
+        {
+          "command": "docxViewer.compareFolders",
           "when": "!isWeb"
         }
       ],
@@ -329,6 +410,26 @@
           "minimum": 1,
           "description": "After this many MB of images in one document, further images are replaced by placeholders."
         },
+        "docxViewer.compareView": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "redline",
+            "markdown"
+          ],
+          "enumDescriptions": [
+            "Ask each time which view to open",
+            "The formatted redline with a change list (desktop VS Code)",
+            "Markdown of both documents in the VS Code diff editor"
+          ],
+          "default": "ask",
+          "description": "What \"Compare with Git HEAD\" and \"Compare with Another Document\" open."
+        },
+        "docxViewer.redlineFormatting": {
+          "type": "boolean",
+          "default": true,
+          "description": "Mark formatting-only changes (bold, italic, underline, size, paragraph style) in the redline and write them as formatting revisions in the DOCX export."
+        },
         "docxViewer.askForRating": {
           "type": "boolean",
           "default": true,
@@ -380,6 +481,20 @@
             "completionEvents": [
               "onCommand:docxViewer.copyAsMarkdown",
               "onCommand:docxViewer.openAsText"
+            ]
+          },
+          {
+            "id": "redline",
+            "title": "Compare two versions (redline)",
+            "description": "Right-click a Word file and choose Compare Documents (Redline), or run Compare with Git HEAD. Insertions are underlined, deletions struck through, moved paragraphs and changed table cells are marked, and F7 steps through the changes.\n[Compare documents](command:docxViewer.compareRedline)",
+            "media": {
+              "image": "images/redline-dark.png",
+              "altText": "Two versions of a services agreement compared in VS Code: insertions underlined in green, deletions struck through in red, a moved clause and changed table cells, with the change list on the left."
+            },
+            "completionEvents": [
+              "onCommand:docxViewer.compareRedline",
+              "onCommand:docxViewer.compareWithHead",
+              "onCommand:docxViewer.compareWithDocument"
             ]
           }
         ]

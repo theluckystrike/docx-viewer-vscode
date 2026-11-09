@@ -17,6 +17,8 @@ const webSwap = {
   name: 'web-swap',
   setup(b) {
     b.onResolve({ filter: /^\.\/run-worker$/ }, (a) => (a.importer.endsWith(path.join('src', 'extension.js')) ? { path: path.join(root, 'src/web/run-worker.js') } : undefined));
+    // The redline (Node worker thread) and the Pro license (Node crypto) are desktop only.
+    b.onResolve({ filter: /^\.\/(pro|redline\/panel|redline\/folders)$/ }, (a) => (a.importer.endsWith(path.join('src', 'extension.js')) ? { path: path.join(root, 'src/web/redline.js') } : undefined));
     b.onResolve({ filter: new RegExp('^(node:)?(' + NODE_BUILTINS.join('|') + ')$') }, (a) => {
       const name = a.path.replace(/^node:/, '');
       if (name === 'path') return { path: path.join(root, 'src/web/path.js') };
