@@ -362,6 +362,23 @@ test('Pro: each Pro feature works 3 times free, then explains itself once per cl
   assert.equal(off.label('exportRedline'), '');
 });
 
+test('Pro: docxViewer.showProFeatures=false hides Pro (shown() false) unless licensed or Pro is off; the setting and when clauses exist', () => {
+  const lic = { isPro: () => false, refresh() {}, requirePro: async () => false, onDidChange: () => ({ dispose() {} }), ready: Promise.resolve() };
+  const vs = (v) => ({ window: { setStatusBarMessage() {} }, workspace: { getConfiguration: () => ({ get: (k, d) => (k === 'showProFeatures' ? v : d) }) } });
+  assert.equal(createPro({ vscode: vs(undefined), context: stubContext(), license: lic }).shown(), true);
+  assert.equal(createPro({ vscode: vs(true), context: stubContext(), license: lic }).shown(), true);
+  assert.equal(createPro({ vscode: vs(false), context: stubContext(), license: lic }).shown(), false);
+  assert.equal(createPro({ vscode: vs(false), context: stubContext(), license: Object.assign({}, lic, { isPro: () => true }) }).shown(), true);
+  assert.equal(createPro({ vscode: vs(false), context: stubContext(), license: lic, enabled: false }).shown(), true);
+  const pk = require('../package.json');
+  assert.equal(pk.contributes.configuration.properties['docxViewer.showProFeatures'].default, true);
+  const pal = pk.contributes.menus.commandPalette;
+  for (const c of ['exportRedlineDocx', 'exportRedlineHtml', 'compareFolders', 'getPro', 'unlockWithSponsors', 'enterLicenseKey', 'removeLicense']) {
+    const e = pal.find((x) => x.command === 'docxViewer.' + c);
+    assert.ok(e && /config\.docxViewer\.showProFeatures/.test(e.when), c);
+  }
+});
+
 // ---------- command wiring ----------
 class Uri {
   constructor(scheme, p) { this.scheme = scheme; this.path = p; this.fsPath = p; }

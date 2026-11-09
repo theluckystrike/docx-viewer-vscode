@@ -433,6 +433,9 @@ function activate(context) {
       if (e.affectsConfiguration('docxViewer.zoom')) {
         for (const p of provider.panels.keys()) p.webview.postMessage({ type: 'zoom', zoom: cfg().zoom });
       }
+      if (e.affectsConfiguration('docxViewer.showProFeatures') && redline && redline.host) {
+        for (const p of redline.host.panels) p.postPro();
+      }
       if (e.affectsConfiguration('docxViewer.maxImageSizeMB') || e.affectsConfiguration('docxViewer.maxTotalImagesMB') || e.affectsConfiguration('docxViewer.maxFileSizeMB')) {
         for (const [p, d] of provider.panels) { d.invalidate(); provider.render(p, d); }
       }

@@ -293,7 +293,7 @@
         },
         {
           "command": "docxViewer.compareFolders",
-          "when": "explorerResourceIsFolder && !isWeb",
+          "when": "explorerResourceIsFolder && !isWeb && config.docxViewer.showProFeatures",
           "group": "7_docx@6"
         }
       ],
@@ -316,11 +316,11 @@
         },
         {
           "command": "docxViewer.exportRedlineDocx",
-          "when": "activeWebviewPanelId == 'docxViewer.redline'"
+          "when": "activeWebviewPanelId == 'docxViewer.redline' && config.docxViewer.showProFeatures"
         },
         {
           "command": "docxViewer.exportRedlineHtml",
-          "when": "activeWebviewPanelId == 'docxViewer.redline'"
+          "when": "activeWebviewPanelId == 'docxViewer.redline' && config.docxViewer.showProFeatures"
         },
         {
           "command": "docxViewer.compareRedline",
@@ -332,7 +332,23 @@
         },
         {
           "command": "docxViewer.compareFolders",
-          "when": "!isWeb"
+          "when": "!isWeb && config.docxViewer.showProFeatures"
+        },
+        {
+          "command": "docxViewer.getPro",
+          "when": "!isWeb && config.docxViewer.showProFeatures"
+        },
+        {
+          "command": "docxViewer.unlockWithSponsors",
+          "when": "!isWeb && config.docxViewer.showProFeatures"
+        },
+        {
+          "command": "docxViewer.enterLicenseKey",
+          "when": "!isWeb && config.docxViewer.showProFeatures"
+        },
+        {
+          "command": "docxViewer.removeLicense",
+          "when": "!isWeb && config.docxViewer.showProFeatures"
         }
       ],
       "scm/resourceState/context": [
@@ -429,6 +445,11 @@
           "type": "boolean",
           "default": true,
           "description": "Mark formatting-only changes (bold, italic, underline, size, paragraph style) in the redline and write them as formatting revisions in the DOCX export."
+        },
+        "docxViewer.showProFeatures": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the Zovo Pro features (redline export, folder compare) and the Zovo Pro commands. Turn off to hide them. Everything free stays visible."
         },
         "docxViewer.askForRating": {
           "type": "boolean",

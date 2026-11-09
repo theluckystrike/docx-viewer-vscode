@@ -6,7 +6,7 @@
 - A change list with counts ("7 insertions, 6 deletions, 2 moves, 3 table cells, 1 formatting change"), filters by type, `F7` / `Shift+F7` for the next and previous change, a side-by-side mode that scrolls both versions together, and Swap to change which version is older.
 - Works for `.docx`, `.docm`, `.dotx`, `.odt` and old `.doc` files (as text), in any mix. Tracked changes already in a file are accepted first.
 - The compare runs in a worker thread with progress and Cancel: two 500-page documents with 200 tables compare in about half a second. Zip bombs and password-protected files get a message.
-- Zovo Pro (3 free tries each, then USD 15 once for every Zovo viewer): export the redline as a new `.docx` with real tracked changes by "Compare" that Word and LibreOffice can accept or reject, or as one self-contained HTML file; and compare two folders of documents. Your documents are never changed. Unlock with GitHub Sponsors or a license key; the license key is checked on your computer.
+- Zovo Pro (3 free tries each, then USD 15 once for every Zovo viewer): export the redline as a new `.docx` with real tracked changes by "Compare" that Word and LibreOffice can accept or reject, or as one self-contained HTML file; and compare two folders of documents. Your documents are never changed. Unlock with GitHub Sponsors or a license key; the license key is checked on your computer. Set `docxViewer.showProFeatures` to `false` to hide the Pro buttons and commands.
 - "More free viewers" starts with the Zovo extensions most related to this one, and the support links include PayPal.
 - The description and keywords now say "compare Word documents", "DOCX compare", "redline" and "track changes".
 

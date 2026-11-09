@@ -134,7 +134,7 @@ class RedlinePanel {
 
   postPro() {
     const pro = this.host.pro;
-    return this.post({ type: 'pro', docx: pro ? pro.label('exportRedline') : '', html: pro ? pro.label('exportRedline') : '' });
+    return this.post({ type: 'pro', docx: pro ? pro.label('exportRedline') : '', html: pro ? pro.label('exportRedline') : '', hide: !!(pro && pro.shown && !pro.shown()) });
   }
 
   job(task) {

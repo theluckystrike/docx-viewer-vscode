@@ -54,8 +54,12 @@ function createPro({ vscode, context, license, enabled }) {
     return explain(f);
   }
 
+  // docxViewer.showProFeatures = false hides the Pro buttons and commands (the "do not show again" for Pro).
+  const shown = () => !on || lic.isPro(SKU) || vscode.workspace.getConfiguration('docxViewer').get('showProFeatures', true) !== false;
+
   return {
     enabled: on,
+    shown,
     ready: lic.ready,
     gate,
     left,

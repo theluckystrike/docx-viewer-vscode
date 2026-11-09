@@ -2,7 +2,7 @@
 
 For developers who get specs, contracts and reports as Word files, DOCX Viewer opens .docx, .odt and old .doc files in VS Code as a dark-mode preview with an outline, search, tables, charts and equations. New in 0.4: compare Word documents as a redline, with tracked changes you can export to Word.
 
-Free, no sign-in, works offline. The only network call is the optional "Unlock with GitHub Sponsors" button for Zovo Pro, and only when you click it.
+Free, offline, no sign-in. Optional Zovo Pro (USD 15 once, all Zovo viewers) exports a redline as a Word file with tracked changes and compares two folders of documents. Everything that is free today stays free. The only network call is the optional "Unlock with GitHub Sponsors" button for Zovo Pro, and only when you click it.
 
 ![A Word report open in VS Code in dark mode, with the heading outline on the left and a search for revenue on match 1 of 6](https://raw.githubusercontent.com/theluckystrike/docx-viewer-vscode/main/images/vscode-docx-dark.png)
 
@@ -116,8 +116,8 @@ Git runs on your machine with hooks and fsmonitor turned off, and only in a trus
 
 Other DOCX extensions for VS Code are viewers. Their users have asked for exactly this kind of compare:
 
-- "Show the differences of a Word file in a Git commit": [vscode-office #392](https://github.com/cweijan/vscode-office/issues/392) (12 comments) and the follow-up [#493](https://github.com/cweijan/vscode-office/pull/493). DOCX Viewer marks every changed word, moved paragraph and table cell against Git HEAD, and exports the result as tracked changes.
-- "Render plus compare differences within different checkouts" and "Synchronous scrolling for compared documents": [Docx-Viewer #11](https://github.com/skfrost19/Docx-Viewer/issues/11) and [#9](https://github.com/skfrost19/Docx-Viewer/issues/9). The redline's side-by-side mode puts both versions in one scrolling view, so they always stay in step, and the changes are marked on both sides.
+- "Show the differences of a Word file in a Git commit": [vscode-office issue 392](https://github.com/cweijan/vscode-office/issues/392) (12 comments) and the follow-up [#493](https://github.com/cweijan/vscode-office/pull/493). DOCX Viewer marks every changed word, moved paragraph and table cell against Git HEAD, and exports the result as tracked changes.
+- "Render plus compare differences within different checkouts" and "Synchronous scrolling for compared documents": [Docx-Viewer issue 11](https://github.com/skfrost19/Docx-Viewer/issues/11) and [#9](https://github.com/skfrost19/Docx-Viewer/issues/9). The redline's side-by-side mode puts both versions in one scrolling view, so they always stay in step, and the changes are marked on both sides.
 - Speed on large Word files comes up in [Office Viewer's reviews](https://marketplace.visualstudio.com/items?itemName=cweijan.vscode-office&ssr=false#review-details) ("a bit slow(ish) when handling larger Word documents", October 2026). Here, a 500-page pair compares in about half a second in a worker thread, under 5 seconds from the command to the finished redline on screen with the file dialog included, and VS Code stays responsive (see Big files).
 
 ## Commands
@@ -162,6 +162,7 @@ In the search box, `Enter` goes to the next match and `Shift+Enter` to the previ
 | `docxViewer.maxTotalImagesMB` | `300` | After this many MB of images, the rest show placeholders |
 | `docxViewer.compareView` | `ask` | What the two compare commands open: `ask`, `redline` or `markdown` |
 | `docxViewer.redlineFormatting` | `true` | Mark formatting-only changes in the redline and write them as formatting revisions in the DOCX export |
+| `docxViewer.showProFeatures` | `true` | Show the Zovo Pro buttons and commands (redline export, folder compare). `false` hides them |
 | `docxViewer.askForRating` | `true` | Ask for a Marketplace rating after 3 files opened without an error on 2 different days. "Later" asks one more time after 7 days, "No thanks" never again. It never asks after an error. Turn it off with `false`. |
 | `docxViewer.showSupportLinks` | `true` | Show the small Sponsor and More free viewers line at the bottom right of the viewer. Turn it off with `false`. |
 
@@ -215,7 +216,7 @@ DOCX Viewer works offline. It makes no network calls and sends no telemetry. The
 
 Everything you could do before stays free: Reading and Page view, search, the outline, tracked changes and comments, Copy as Markdown, the Markdown compare, and the on-screen redline with its change list, filters and side-by-side mode.
 
-Zovo Pro adds the redline exports (DOCX with tracked changes, HTML) and the folder compare. Each one works 3 times on your computer before it asks. Zovo Pro is USD 15 once on [GitHub Sponsors](https://github.com/sponsors/theluckystrike?frequency=one-time) and unlocks the Pro features in every Zovo VS Code viewer. If you have already sponsored USD 10 or more, run "Zovo: Unlock Pro with GitHub Sponsors". No popups on open, no ads, no countdown.
+Zovo Pro adds the redline exports (DOCX with tracked changes, HTML) and the folder compare. Each one works 3 times on your computer before it asks. Zovo Pro is USD 15 once on [GitHub Sponsors](https://github.com/sponsors/theluckystrike?frequency=one-time) and unlocks the Pro features in every Zovo VS Code viewer. If you have already sponsored USD 10 or more, run "Zovo: Unlock Pro with GitHub Sponsors". No popups on open, no ads, no countdown. Set `docxViewer.showProFeatures` to `false` to hide the Pro buttons and commands.
 
 ## Credits
 

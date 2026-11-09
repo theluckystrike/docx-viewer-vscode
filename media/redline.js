@@ -191,6 +191,8 @@
       case 'pro':
         $('rl-pro-docx').textContent = m.docx ? '(' + m.docx + ')' : '';
         $('rl-pro-html').textContent = m.html ? '(' + m.html + ')' : '';
+        $('rl-export-docx').classList.toggle('rl-hide', !!m.hide);
+        $('rl-export-html').classList.toggle('rl-hide', !!m.hide);
         break;
       case 'rows':
         st.rows.push(...m.rows);
