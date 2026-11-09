@@ -202,7 +202,11 @@
         return;
       }
     }
-    function act() { st.acted = true; check(); }
+    // A VS Code shortcut (Ctrl, Cmd or Alt + key) or a lone modifier is not reading the document: it does not count.
+    function act(e) {
+      if (e && e.type === 'keydown' && (e.ctrlKey || e.metaKey || e.altKey || /^(Shift|Control|Meta|Alt|CapsLock|Fn)$/.test(e.key || ''))) return;
+      st.acted = true; check();
+    }
     ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(function (t) { win.addEventListener(t, act, { capture: true, passive: true }); });
     let timer = null;
     scroller.addEventListener('scroll', function () { if (!st.acted || st.asked) return; clearTimeout(timer); timer = setTimeout(check, 150); }, { passive: true });
