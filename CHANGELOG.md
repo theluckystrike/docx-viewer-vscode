@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1 (2026-11-09)
+
+- "Rate it" in the rating question and the Rate link in the viewer footer now open the review page of the store your editor installs from: the Visual Studio Marketplace in VS Code, Open VSX in Cursor, Windsurf, VSCodium and other editors that use Open VSX. Before, they always opened the Marketplace.
+- A window that stays open for days now counts a file opened 4 hours or more after its first one as a new session for the rating question.
+- Everything in 0.4.0 is unchanged.
+
 ## 0.4.0 (2026-11-09)
 
 - Redline compare. "Compare with Git HEAD" and "Compare with Another Document" now offer a Redline view next to the Markdown diff (setting `docxViewer.compareView`), and "Compare Documents (Redline)..." opens it directly. One document shows word-level insertions (underlined) and deletions (struck through), moved paragraphs as moves, changed table cells one by one and, with "Formatting" on, bold, italic, underline, size and paragraph style changes.

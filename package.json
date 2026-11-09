@@ -2,7 +2,7 @@
   "name": "docx-viewer-vscode",
   "displayName": "DOCX Viewer & ODT Viewer, Word Document Preview (Dark Mode)",
   "description": "Free and offline. DOCX viewer and Word viewer for VS Code: open .docx, .odt and old .doc files with dark mode, search and outline. Compare Word documents as a redline (DOCX compare and DOCX diff) and export track changes to Word.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "publisher": "zovo",
   "license": "MIT",
   "icon": "icon.png",
@@ -454,7 +454,7 @@
         "docxViewer.askForRating": {
           "type": "boolean",
           "default": true,
-          "description": "Ask for a Marketplace rating after 3 files opened without an error on 2 different days. \"Later\" asks one more time after 7 days, \"No thanks\" never asks again. It never asks after an error or more than 2 times. Nothing is sent anywhere."
+          "description": "Ask for a rating after 2 files opened without an error in 2 sessions at least 4 hours apart. \"Rate it\" opens the Marketplace review page in VS Code and the Open VSX one in Cursor, Windsurf and VSCodium. \"Later\" asks one more time after 7 days, \"No thanks\" never asks again. It never asks after an error or more than 2 times. Nothing is sent anywhere."
         },
         "docxViewer.showSupportLinks": {
           "type": "boolean",

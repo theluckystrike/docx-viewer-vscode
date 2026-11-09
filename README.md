@@ -163,7 +163,7 @@ In the search box, `Enter` goes to the next match and `Shift+Enter` to the previ
 | `docxViewer.compareView` | `ask` | What the two compare commands open: `ask`, `redline` or `markdown` |
 | `docxViewer.redlineFormatting` | `true` | Mark formatting-only changes in the redline and write them as formatting revisions in the DOCX export |
 | `docxViewer.showProFeatures` | `true` | Show the Zovo Pro buttons and commands (redline export, folder compare). `false` hides them |
-| `docxViewer.askForRating` | `true` | Ask for a Marketplace rating after 3 files opened without an error on 2 different days. "Later" asks one more time after 7 days, "No thanks" never again. It never asks after an error. Turn it off with `false`. |
+| `docxViewer.askForRating` | `true` | Ask for a rating after 2 files opened without an error in 2 sessions at least 4 hours apart. "Rate it" opens the Marketplace review page in VS Code and the Open VSX one in Cursor, Windsurf and VSCodium. "Later" asks one more time after 7 days, "No thanks" never again. It never asks after an error. Turn it off with `false`. |
 | `docxViewer.showSupportLinks` | `true` | Show the small Sponsor and More free viewers line at the bottom right of the viewer. Turn it off with `false`. |
 
 ## Big files
