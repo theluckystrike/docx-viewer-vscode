@@ -167,7 +167,10 @@ function sanitize(rawTree) {
       if (a['data-dv-skipped'] || !IMG_SRC.test(src)) {
         skippedImages++;
         const why = a['data-dv-skipped'] || 'this image format cannot be shown';
-        return { type: 'el', tag: 'span', attrs: { class: 'dv-img-skipped' }, children: [{ type: 'text', text: '[Image' + (alt ? ' "' + alt + '"' : '') + ' not shown: ' + why + ']' }] };
+        const attrs = { class: 'dv-img-skipped' };
+        const kind = unsupportedKind(why);
+        if (kind) attrs['data-dv-unsup'] = kind; // EXEC9: a format the viewer does not draw (not a size limit)
+        return { type: 'el', tag: 'span', attrs, children: [{ type: 'text', text: '[Image' + (alt ? ' "' + alt + '"' : '') + ' not shown: ' + why + ']' }] };
       }
       images++;
       return { type: 'el', tag: 'img', attrs: { src: src.replace(/\s+/g, ''), alt }, children: [] };
@@ -188,6 +191,15 @@ function sanitize(rawTree) {
 
   const tree = { type: 'root', children: cleanChildren(rawTree.children) };
   return { tree, outline, footnotes, images, skippedImages };
+}
+
+// EXEC9: the kind of image for the custom format line, only when the format itself is what is missing.
+// "PICT images are not supported" -> "PICT images"; the fallback -> "unknown images"; limits, missing or linked
+// images -> '' (those are settings or the file, not a format).
+function unsupportedKind(why) {
+  const m = /^([A-Za-z0-9.+-]{1,16}) images are not supported$/.exec(why);
+  if (m) return m[1] + ' images';
+  return why === 'this image format cannot be shown' ? 'unknown images' : '';
 }
 
 function renderNode(node) {
@@ -476,5 +488,5 @@ function injectItems(tree, items, tag) {
 module.exports = {
   injectItems,
   parse, sanitize, renderNode, chunkBlocks, toMarkdown, toPlainText,
-  decodeEntities, escapeText, escapeAttr, textOf, formatBytes, safeId
+  decodeEntities, escapeText, escapeAttr, textOf, formatBytes, safeId, unsupportedKind
 };

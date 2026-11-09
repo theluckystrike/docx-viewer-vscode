@@ -27,6 +27,8 @@
   // The last three are drawn by media/pictures.js before they show (see src/pictures.js).
   const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/bmp', 'image/webp', 'image/x-emf', 'image/x-wmf', 'image/tiff'];
   const SAFE_LINK = /^(https?:\/\/|mailto:)[^\s<>"]{1,2040}$/i;
+  // EXEC9: what the custom format line is about. A kind of element, never document text.
+  const CUSTOM_WHAT = /^[A-Za-z0-9.+-]{1,16}( [A-Za-z0-9.+-]{1,16})? (images|pictures|formatting)$/;
 
   function isObj(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
@@ -54,6 +56,12 @@
         return { ok: true, msg: { type: 'setToolbar', hidden: m.hidden === true } };
       case 'pageRendered':
         return { ok: true, msg: { type: 'pageRendered', ms: Number.isFinite(m.ms) ? Math.round(m.ms) : 0, pages: Number.isInteger(m.pages) ? m.pages : 0 } };
+      case 'customClaim':
+        if (typeof m.what !== 'string' || !CUSTOM_WHAT.test(m.what)) return { ok: false, error: 'bad kind' };
+        return { ok: true, msg: { type: 'customClaim', what: m.what } };
+      case 'customOpen':
+        if (m.which !== 'request' && m.which !== 'tier') return { ok: false, error: 'unknown link' };
+        return { ok: true, msg: { type: 'customOpen', which: m.which } };
       default:
         return { ok: false, error: 'unknown type' };
     }
@@ -92,6 +100,7 @@
       case 'toolbar': return typeof m.hidden === 'boolean';
       case 'font': return typeof m.font === 'string';
       case 'find': case 'loading': return true;
+      case 'customGrant': return Number.isInteger(m.usd) && m.usd > 0;
       default: return false;
     }
   }
@@ -160,5 +169,72 @@
     return 'Picture could not be drawn (' + pictureName(kind) + ')' + (err && err.message ? ': ' + String(err.message).slice(0, 160) : '');
   }
 
-  return { VERSION, COMMANDS, IMAGE_TYPES, PICTURE_NAMES, loadPictures, drawPicture, pictureName, pictureMessage, setupToolbar, THEMES, VIEWS, ZOOM, clampZoom, nextZoom, validateInbound, validateOutbound, buildRenderMessages, buildNotice };
+  // ---------- EXEC9: the USD 299 custom format line next to a part the viewer does not show ----------
+  // Targets carry data-dv-unsup="<kind>" (a placeholder) or are the "Text only" banner. Nothing happens on open:
+  // after the user's first click, key, wheel or touch in the view, the first target that is on screen asks the host
+  // (customClaim). The host says yes once per session (customGrant); then one line goes right after that target.
+  // The two links only post customOpen; the host opens the page. No network from here.
+  const TEXT_ONLY = /Text only: formatting, images and layout are not shown\./;
+  function customKind(el) {
+    const k = el.getAttribute && el.getAttribute('data-dv-unsup');
+    if (k) return k;
+    const t = el.textContent || '';
+    return TEXT_ONLY.test(t) ? (/RTF/.test(t) ? 'RTF formatting' : 'Word 97-2003 formatting') : '';
+  }
+  function setupCustomOffer(doc, vscode, scroller, findTargets) {
+    const st = { acted: false, asked: false, target: null, line: null };
+    const win = doc.defaultView;
+    function onScreen(el) {
+      const r = el.getBoundingClientRect();
+      const v = scroller.getBoundingClientRect();
+      return r.bottom > v.top && r.top < v.bottom && (r.width > 0 || r.height > 0);
+    }
+    function check() {
+      if (st.asked || !st.acted) return;
+      const list = findTargets();
+      for (let i = 0; i < list.length; i++) {
+        const el = list[i];
+        const what = customKind(el);
+        if (!what || !CUSTOM_WHAT.test(what) || !onScreen(el)) continue;
+        st.asked = true;
+        st.target = el;
+        vscode.postMessage({ type: 'customClaim', what: what });
+        return;
+      }
+    }
+    function act() { st.acted = true; check(); }
+    ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(function (t) { win.addEventListener(t, act, { capture: true, passive: true }); });
+    let timer = null;
+    scroller.addEventListener('scroll', function () { if (!st.acted || st.asked) return; clearTimeout(timer); timer = setTimeout(check, 150); }, { passive: true });
+    function link(which, text) {
+      const b = doc.createElement('button');
+      b.type = 'button';
+      b.className = 'dv-linkbtn';
+      b.textContent = text;
+      b.title = which === 'tier' ? 'Opens the GitHub Sponsors tier in the browser' : 'Opens the format request form on GitHub in the browser';
+      b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); vscode.postMessage({ type: 'customOpen', which: which }); });
+      return b;
+    }
+    return {
+      // A new document or view: forget the target and wait for a new user action.
+      reset: function () { st.acted = false; st.asked = false; st.target = null; if (st.line && st.line.parentNode) st.line.parentNode.removeChild(st.line); st.line = null; },
+      check: check,
+      grant: function (m) {
+        const el = st.target;
+        if (!el || !el.isConnected || st.line) return;
+        const span = doc.createElement('span');
+        span.className = 'dv-customfmt';
+        span.appendChild(doc.createTextNode(' '));
+        span.appendChild(link('request', 'Request support for this (free)'));
+        span.appendChild(doc.createTextNode(', or '));
+        span.appendChild(link('tier', 'we build it for USD ' + m.usd + ' once'));
+        span.appendChild(doc.createTextNode('.'));
+        if (el.id === 'dv-banner') { const t = doc.getElementById('dv-banner-text'); (t || el).appendChild(span); } else el.insertAdjacentElement('afterend', span);
+        st.line = span;
+      },
+      state: st
+    };
+  }
+
+  return { VERSION, COMMANDS, CUSTOM_WHAT, customKind, setupCustomOffer, IMAGE_TYPES, PICTURE_NAMES, loadPictures, drawPicture, pictureName, pictureMessage, setupToolbar, THEMES, VIEWS, ZOOM, clampZoom, nextZoom, validateInbound, validateOutbound, buildRenderMessages, buildNotice };
 });

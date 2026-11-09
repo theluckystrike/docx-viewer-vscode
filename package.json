@@ -2,7 +2,7 @@
   "name": "docx-viewer-vscode",
   "displayName": "DOCX Viewer & ODT Viewer, Word Document Preview (Dark Mode)",
   "description": "Free and offline. DOCX viewer and Word viewer for VS Code: open .docx, .odt and old .doc files with dark mode, search and outline. Compare Word documents as a redline (DOCX compare and DOCX diff) and export track changes to Word.",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "publisher": "zovo",
   "license": "MIT",
   "icon": "icon.png",

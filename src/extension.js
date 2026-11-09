@@ -12,6 +12,7 @@ const { registerCompare } = require('./compare');
 const { createRedline } = require('./redline/panel');
 const { registerFolders } = require('./redline/folders');
 const { createPro } = require('./pro');
+const { createCustomOffer } = require('./custom-offer');
 
 let rating = { success() {}, failure() {} };
 const counted = new WeakSet(); // panels already counted for the rating prompt
@@ -81,6 +82,9 @@ class DocxEditorProvider {
     this.views = new Map(); // panel -> 'reading' | 'page'
     this.notes = new Map(); // panel -> { text, actions } shown once above Reading view
     this.active = null;
+    // EXEC9: the USD 299 custom format line next to a part the viewer does not show, once per session.
+    this.custom = createCustomOffer({ vscode, product: 'DOCX Viewer', version: context && context.extension && context.extension.packageJSON ? context.extension.packageJSON.version : '' });
+    this.customFor = new Map(); // panel -> the kind of part it was shown for
   }
 
   pageAvailable(document) { return PAGE_EXT.test(document.uri.path); }
@@ -144,6 +148,7 @@ class DocxEditorProvider {
     }
     panel.onDidDispose(() => {
       this.panels.delete(panel);
+      this.customFor.delete(panel);
       if (this.active === panel) this.active = null;
       subs.forEach((s) => s.dispose());
     });
@@ -167,6 +172,13 @@ class DocxEditorProvider {
       return;
     }
     if (m.type === 'setToolbar') return this.setToolbar(m.hidden, panel);
+    if (m.type === 'customClaim') {
+      const g = this.custom.claim();
+      if (!g) return;
+      this.customFor.set(panel, m.what);
+      return panel.webview.postMessage({ type: 'customGrant', usd: g.usd });
+    }
+    if (m.type === 'customOpen') return this.customFor.has(panel) ? this.custom.open(m.which, this.customFor.get(panel)) : undefined;
     if (m.type === 'pageFailed') {
       rating.failure();
       this.notes.set(panel, { text: NOTES.failed, actions: [] });

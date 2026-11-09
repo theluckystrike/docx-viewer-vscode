@@ -563,7 +563,7 @@ test('Pro (CONV2): the real license facade explains with the buy buttons first, 
   await pro.ready;
   for (let i = 0; i < TRIAL_USES; i++) await pro.gate('exportRedline');
   assert.equal(await pro.gate('exportRedline'), false);
-  assert.deepEqual(modal[0].b, ['Get Zovo Pro', 'Pay with PayPal', 'Unlock with GitHub Sponsors', 'I have a license key']);
+  assert.deepEqual(modal[0].b, ['Get Zovo Pro', 'Unlock with GitHub Sponsors', 'Pay with PayPal', 'I have a license key']);
   assert.match(modal[0].detail, /How to buy: "Get Zovo Pro" opens the "\$19 one time" tier on GitHub Sponsors/);
   assert.match(modal[0].detail, /USD 59 for a team of 5/);
   assert.equal(modal[1].msg, 'Pay for Zovo Pro with PayPal');

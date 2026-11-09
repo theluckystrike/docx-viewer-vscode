@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.3 (2026-11-10)
+
+- When a picture cannot be drawn (an EMF, WMF or TIFF that fails, or an image format the viewer does not read) or an old Word or RTF file opens as text only, one line can show next to that note: "Request support for this (free), or we build it for USD 299 once." The first link opens the format request form on GitHub with the kind of element filled in (never the file name or any text from the document). The second opens the GitHub Sponsors tier for custom format support.
+- The line shows at most once per VS Code session, only after you click, scroll with the wheel or type in the document, and only next to a note that is on screen. Never when a file opens, no popup, no notification, and nothing is sent until you click a link. Images left out for a size limit get no line.
+- The Pro window lists the ways to pay in one order: Get Zovo Pro (GitHub Sponsors), Unlock with GitHub Sponsors, Pay with PayPal, I have a license key (shared license module synced).
+- Everything else in 0.4.2 is unchanged: Reading view, Page view, the redline and its Pro export with 3 free tries, the rating question and the support links.
+
 ## 0.4.2 (2026-11-10)
 
 - Pay for Zovo Pro with PayPal from inside VS Code: a "Pay with PayPal" button in the Pro window and the command "Zovo: Pay for Pro with PayPal". It lists the 3 steps and opens PayPal with the amount filled in: USD 19 for one person, or USD 59 for a team of 5 with one shared key. The transaction ID goes to a short form on GitHub and the license key comes by email.

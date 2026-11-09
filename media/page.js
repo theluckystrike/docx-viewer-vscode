@@ -42,7 +42,7 @@
   // by media/pictures.js (through DocxProtocol.drawPicture) and the rest pass through unchanged.
   // A picture that cannot be drawn becomes a small box that says so. urls collects the blob: URLs.
   const DRAWN = /\.(emf|wmf|tiff?)$/i;
-  function pictureHook(doc, P, limits, urls) {
+  function pictureHook(doc, P, limits, urls, failed) {
     return function (blob, path, original) {
       const m = DRAWN.exec(path || '');
       if (!m || !blob) return original(blob, path);
@@ -52,7 +52,9 @@
         if (limits && blob.size > limits.maxBytes) throw new Error('it is over the ' + Math.round(limits.maxBytes / 1048576) + ' MB picture limit');
         return blob.arrayBuffer();
       }).then(function (ab) { return P.drawPicture(doc, new Uint8Array(ab), kind, limits); }).then(keep, function (err) {
-        return keep(new Blob([placeholderSvg(P.pictureMessage(kind, err))], { type: 'image/svg+xml' }));
+        const u = keep(new Blob([placeholderSvg(P.pictureMessage(kind, err))], { type: 'image/svg+xml' }));
+        if (failed) failed.set(u, P.pictureName(kind) + ' pictures'); // EXEC9: the custom format line goes next to it
+        return u;
       });
     };
   }
@@ -140,6 +142,9 @@
     let current = -1;
     let loaded = false;
     let pictureUrls = [];
+    let failedPictures = new Map();
+    // EXEC9: the custom format line next to the first picture placeholder on screen, after a user action.
+    const custom = P.setupCustomOffer(doc, vscode, scroller, function () { return Array.prototype.slice.call(pagesRoot.querySelectorAll('[data-dv-unsup]')); });
 
     const setToolbar = P.setupToolbar(doc, vscode);
     function save() { vscode.setState({ theme: state.theme, outlineOpen: state.outlineOpen, query: state.query }); }
@@ -280,6 +285,7 @@
       if (m.type === 'toolbar') { setToolbar(m.hidden, false); return; }
       if (m.type === 'font') return;
       if (m.type === 'zoom') { state.zoom = P.clampZoom(m.zoom); applyZoom(false); return; }
+      if (m.type === 'customGrant') { custom.grant(m); return; }
       if (m.type === 'pageNote') {
         $('dv-page-note-text').textContent = m.text;
         const box = $('dv-page-note-actions');
@@ -301,6 +307,8 @@
       loaded = false;
       pictureUrls.forEach(function (u) { URL.revokeObjectURL(u); });
       pictureUrls = [];
+      failedPictures = new Map();
+      custom.reset();
       pagesRoot.textContent = '';
       statusEl.hidden = false;
       statusEl.textContent = 'Laying out pages...';
@@ -308,8 +316,9 @@
       const render = win.DocxPreview && win.DocxPreview.renderAsync;
       if (typeof render !== 'function') { vscode.postMessage({ type: 'pageFailed', reason: 'error', ms: 0 }); return; }
       const limits = { maxBytes: typeof m.pictureMaxBytes === 'number' && m.pictureMaxBytes > 0 ? m.pictureMaxBytes : 20 * 1048576 };
-      renderPages(render, m.bytes, pagesRoot, $('dv-page-styles'), TIMEOUT_MS, pictureHook(doc, P, limits, pictureUrls)).then(function (pages) {
+      renderPages(render, m.bytes, pagesRoot, $('dv-page-styles'), TIMEOUT_MS, pictureHook(doc, P, limits, pictureUrls, failedPictures)).then(function (pages) {
         statusEl.hidden = true;
+        pagesRoot.querySelectorAll('img').forEach(function (img) { const k = failedPictures.get(img.getAttribute('src')); if (k) img.setAttribute('data-dv-unsup', k); });
         loaded = true;
         applyZoom(false);
         renderOutline(buildOutline(pagesRoot));

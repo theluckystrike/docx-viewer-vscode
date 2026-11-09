@@ -35,11 +35,13 @@
   // and a picture that cannot be drawn becomes a short note in the text.
   let imageUrls = [];
   let imageFails = [];
+  let imageKinds = [];
   let imageGen = 0;
   const drawnUrls = new Set();
-  function failImage(img, text) {
+  function failImage(img, text, kind) {
     const span = document.createElement('span');
     span.className = 'dv-img-skipped';
+    if (kind) span.setAttribute('data-dv-unsup', P.pictureName(kind) + ' pictures'); // EXEC9
     span.textContent = '[' + text + ']';
     img.replaceWith(span);
   }
@@ -47,6 +49,7 @@
     imageUrls.forEach(function (u) { if (u) URL.revokeObjectURL(u); });
     const gen = ++imageGen;
     imageFails = [];
+    imageKinds = [];
     imageUrls = list.map(function (im, i) {
       if (!P.PICTURE_NAMES[im.type]) return URL.createObjectURL(new Blob([im.data], { type: im.type }));
       // The converter already applied docxViewer.maxImageSizeMB to these bytes.
@@ -59,7 +62,9 @@
       }, function (err) {
         if (gen !== imageGen) return;
         imageFails[i] = P.pictureMessage(im.type, err);
-        doc.querySelectorAll('img[data-dv-img="' + i + '"]').forEach(function (img) { failImage(img, imageFails[i]); });
+        imageKinds[i] = im.type;
+        doc.querySelectorAll('img[data-dv-img="' + i + '"]').forEach(function (img) { failImage(img, imageFails[i], im.type); });
+        custom.check();
       });
       return null;
     });
@@ -67,7 +72,7 @@
   function bindImages(root) {
     root.querySelectorAll('img[data-dv-img]').forEach(function (img) {
       const i = Number(img.getAttribute('data-dv-img'));
-      if (imageFails[i]) { failImage(img, imageFails[i]); return; }
+      if (imageFails[i]) { failImage(img, imageFails[i], imageKinds[i]); return; }
       const u = imageUrls[i];
       if (u === null) img.classList.add('dv-img-drawing');
       else if (u) { img.src = u; if (drawnUrls.has(u)) img.classList.add('dv-drawn'); }
@@ -104,6 +109,7 @@
 
   // ---------- rendering ----------
   function resetView(meta) {
+    if (custom) custom.reset();
     clearMarks();
     doc.textContent = '';
     outlineList.textContent = '';
@@ -208,6 +214,15 @@
     actions.forEach(function (a) { box.appendChild(actionButton(a)); });
     $('dv-banner').hidden = false;
   }
+
+  // ---------- EXEC9: custom format line next to the first unshown part on screen, after a user action ----------
+  const custom = P.setupCustomOffer(document, vscode, scroller, function () {
+    const list = [];
+    const banner = $('dv-banner');
+    if (!banner.hidden) list.push(banner);
+    doc.querySelectorAll('[data-dv-unsup]').forEach(function (el) { list.push(el); });
+    return list;
+  });
 
   // ---------- tracked changes and comments ----------
   const KIND = { ins: 'Inserted', moveTo: 'Moved here', del: 'Deleted', moveFrom: 'Moved away' };
@@ -384,6 +399,7 @@
         if (q.value) runSearch();
         break;
       case 'notice': renderNotice(m); break;
+      case 'customGrant': custom.grant(m); break;
       case 'theme': state.theme = m.theme; applyTheme(); save(); break;
       case 'zoom': state.zoom = P.clampZoom(m.zoom); applyZoom(false); break;
       case 'find': focusSearch(); break;

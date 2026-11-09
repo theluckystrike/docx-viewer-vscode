@@ -225,3 +225,9 @@ polyline.dv-chart-line { fill: none; }
 .dv-chart-details summary { cursor: pointer; }
 .dv-page table.dv-chart-data th { background: var(--dv-table-head); font-weight: 600; text-align: left; }
 .dv-page table.dv-chart-data td { text-align: right; font-variant-numeric: tabular-nums; }
+/* EXEC9: the custom format line after a part that is not shown (Reading view, the Text only banner, Page view). */
+.dv-customfmt { color: var(--dv-muted); font-size: 0.9em; }
+.dv-linkbtn { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: var(--dv-link); text-decoration: underline; cursor: pointer; }
+.dv-linkbtn:focus-visible { outline: 1px solid var(--vscode-focusBorder, #007fd4); outline-offset: 1px; }
+.docx-wrapper .dv-customfmt { color: #555; font-family: sans-serif; font-size: 12px; }
+.docx-wrapper .dv-linkbtn { color: #0b57d0; }
