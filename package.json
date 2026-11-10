@@ -537,6 +537,14 @@
               "onCommand:docxViewer.compareWithHead",
               "onCommand:docxViewer.compareWithDocument"
             ]
+          },
+          {
+            "id": "zovo-related",
+            "title": "Files that often come with Word documents",
+            "description": "If your project also has PowerPoint decks or PDF files, these free Zovo extensions open them. A link opens the extension page, and you choose there whether to install it.\n[Office Viewer Pack](command:extension.open?%5B%22zovo.zovo-file-viewers%22%5D)\n[PPTX Viewer](command:extension.open?%5B%22zovo.pptx-slide-viewer%22%5D)\n[PDF Viewer](command:extension.open?%5B%22zovo.pdf-viewer-dark%22%5D)",
+            "media": {
+              "markdown": "walkthrough/related.md"
+            }
           }
         ]
       }
@@ -564,6 +572,6 @@
     "jsdom": "^24.1.3"
   },
   "sponsor": {
-    "url": "https://github.com/sponsors/theluckystrike"
+    "url": "https://github.com/sponsors/theluckystrike/sponsorships?tier_id=679878"
   }
 }

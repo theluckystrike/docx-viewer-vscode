@@ -85,7 +85,7 @@ async function open(file) {
 test('webview gets scripts enabled, command URIs only for the support links, and resources limited to media/', async () => {
   const { panel } = await open('sample.docx');
   assert.strictEqual(panel.webview.options.enableScripts, true);
-  assert.deepStrictEqual(panel.webview.options.enableCommandUris, ['docxViewer.supportDeveloper', 'docxViewer.moreViewers', 'workbench.action.openSettings']);
+  assert.deepStrictEqual(panel.webview.options.enableCommandUris, ['docxViewer.supportDeveloper', 'docxViewer.moreViewers', 'docxViewer.getPro', 'docxViewer.payWithPayPal', 'workbench.action.openSettings']);
   assert.strictEqual(panel.webview.options.localResourceRoots.length, 1);
   assert.match(panel.webview.options.localResourceRoots[0].path, /media$/);
   assert.match(panel.webview.html, /Content-Security-Policy/);
@@ -197,8 +197,8 @@ test('unknown messages are ignored and closing the panel stops posting', async (
 test('support: package.json has the sponsor field, the two commands and the setting', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
   const support = require('../src/support');
-  assert.strictEqual(pkg.sponsor.url, 'https://github.com/sponsors/theluckystrike');
-  assert.strictEqual(pkg.sponsor.url, support.sponsorUrl());
+  assert.strictEqual(pkg.sponsor.url, 'https://github.com/sponsors/theluckystrike/sponsorships?tier_id=679878');
+  assert.strictEqual(pkg.sponsor.url, 'https://github.com/sponsors/theluckystrike/sponsorships?tier_id=679878');
   const ids = pkg.contributes.commands.map((c) => c.command);
   assert.ok(ids.includes('docxViewer.supportDeveloper') && ids.includes('docxViewer.moreViewers'));
   const cfgs = Array.isArray(pkg.contributes.configuration) ? pkg.contributes.configuration : [pkg.contributes.configuration];
@@ -213,7 +213,7 @@ test('support: the footer shows by default and docxViewer.showSupportLinks=false
       const { panel } = await open('sample.docx');
       const html = panel.webview.html;
       assert.strictEqual(/id="zovo-support"/.test(html), shown, String(value));
-      assert.strictEqual(html.includes('command:docxViewer.supportDeveloper'), shown);
+      assert.strictEqual(html.includes('command:docxViewer.getPro'), shown);
       const csp = /Content-Security-Policy" content="([^"]+)"/.exec(html)[1];
       assert.ok(!/unsafe-(inline|eval)/.test(csp));
       panel.close();

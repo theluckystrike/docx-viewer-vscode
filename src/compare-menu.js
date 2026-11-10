@@ -42,7 +42,7 @@ function createCompareMenu(deps) {
     const uri = arg instanceof vscode.Uri ? arg : (deps.activeUri ? deps.activeUri() : null);
     const shownPro = !!(pro && redline && folders && pro.shown());
     const placeHolder = shownPro && !pro.isPro()
-      ? 'The 2 Pro tools have 3 free tries each on this computer. Zovo Pro is USD 19 once, for every Zovo viewer.'
+      ? '2 Pro tools, 3 free tries each. Zovo Pro is USD 19 once, for every Zovo viewer.'
       : 'Pick a compare';
     const pick = await vscode.window.showQuickPick(items(), { title: 'Compare this document', placeHolder });
     if (!pick || !pick.id) return;

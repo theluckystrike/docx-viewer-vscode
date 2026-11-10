@@ -6,7 +6,10 @@
 - A free try of a Pro tool now counts only after its output is written: the folder report after a folder compare, the saved file after a redline export. Closing a folder picker or the save dialog with Escape keeps the try. Before, a folder compare used a try as soon as the first picker opened.
 - "Export redline as Word" from the Compare list exports the open redline, or first asks for the document to compare this one with and exports when the compare is done.
 - The Zovo Pro commands share one "Zovo Pro" group in the Command Palette, with the same names in every Zovo extension.
-- Everything else in 0.4.3 is unchanged: Reading view, Page view, the redline and its change list, the rating question, the support links and the USD 299 custom format line.
+- "More free viewers" now starts with the Zovo extensions most related to this one. Picking one opens its Marketplace page, where you choose to install it.
+- The walkthrough ends with a step that links free Zovo extensions for the files that often come with this one. A link opens the extension page; nothing installs on its own.
+- The footer link "Zovo Pro, USD 19" and the Marketplace Sponsor button open the Zovo Pro tier (USD 19 once, for every Zovo extension) instead of the general GitHub Sponsors page.
+- Everything else in 0.4.3 is unchanged: Reading view, Page view, the redline and its change list, the rating question and the USD 299 custom format line.
 
 ## 0.4.3 (2026-11-10)
 
