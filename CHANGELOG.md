@@ -6,6 +6,8 @@
 - A free try of a Pro tool now counts only after its output is written: the folder report after a folder compare, the saved file after a redline export. Closing a folder picker or the save dialog with Escape keeps the try. Before, a folder compare used a try as soon as the first picker opened.
 - "Export redline as Word" from the Compare list exports the open redline, or first asks for the document to compare this one with and exports when the compare is done.
 - The Zovo Pro commands share one "Zovo Pro" group in the Command Palette, with the same names in every Zovo extension.
+- The Zovo Pro window is shorter and has 4 buttons: "Get Zovo Pro, USD 19", "Pay with PayPal", "I already paid" (unlock with GitHub Sponsors or a license key) and Cancel. It names the other DOCX Pro tool and says that Pro covers all 22 Zovo extensions.
+- One unlock for all Zovo extensions on this computer: after you unlock Zovo Pro here, the other Zovo extensions that have this license update find it without a second sign-in or key. The file `~/.zovo/pro.json` holds the key or the GitHub Sponsors result, never a sign-in token.
 - "More free viewers" now starts with the Zovo extensions most related to this one. Picking one opens its Marketplace page, where you choose to install it.
 - The walkthrough ends with a step that links free Zovo extensions for the files that often come with this one. A link opens the extension page; nothing installs on its own.
 - The footer link "Zovo Pro, USD 19" and the Marketplace Sponsor button open the Zovo Pro tier (USD 19 once, for every Zovo extension) instead of the general GitHub Sponsors page.

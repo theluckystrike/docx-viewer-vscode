@@ -25,14 +25,13 @@ const FEATURES = {
   }
 };
 
-// The facade (src/license) adds the "How to buy" paragraph: the USD 19 tier on GitHub Sponsors, PayPal USD 19 or
-// USD 59 for a team of 5 (CONV2).
-const PRICE_LINE = 'Zovo Pro is USD 19 once, for life, and unlocks the Pro features in every Zovo viewer. Unlock with GitHub Sponsors asks GitHub one question and sends nothing else.';
-const FREE_LINE = 'Everything else in DOCX Viewer stays free: Reading and Page view, search, tracked changes, Copy as Markdown, the Markdown compare and the on-screen redline with its change list.';
+// Module v2 (EXEC14) writes the price, the other Pro tools of this extension, the count of Zovo extensions with Pro
+// and "Everything that is free today stays free." The product passes only the feature detail and the tries used.
+const PRO_TOOLS = Object.keys(FEATURES).map((f) => FEATURES[f].title);
 
 function createPro({ vscode, context, license, enabled }) {
   const on = enabled === undefined ? PRO_ENABLED : enabled;
-  const lic = license || createLicense({ vscode, context, sku: SKU, name: 'Zovo', product: 'DOCX Viewer', commandPrefix: 'docxViewer' });
+  const lic = license || createLicense({ vscode, context, sku: SKU, name: 'Zovo', product: 'DOCX Viewer', commandPrefix: 'docxViewer', proTools: PRO_TOOLS });
   const used = (f) => Number((context.globalState.get(TRIAL_KEY) || {})[f]) || 0;
   const left = (f) => (FEATURES[f] ? Math.max(0, TRIAL_USES - used(f)) : 0);
 
@@ -40,8 +39,7 @@ function createPro({ vscode, context, license, enabled }) {
 
   async function explain(f) {
     const ft = FEATURES[f];
-    const tried = used(f) >= TRIAL_USES ? 'You have used the ' + TRIAL_USES + ' free tries of this feature on this computer.\n\n' : '';
-    return lic.requirePro(ft.title, tried + ft.detail + '\n\n' + PRICE_LINE + '\n\n' + FREE_LINE);
+    return lic.requirePro(ft.title, { detail: ft.detail, triesUsed: used(f) >= TRIAL_USES ? TRIAL_USES : 0 });
   }
 
   // Call when the user has chosen a Pro action, before asking for its inputs. True when it may run: Pro, or free
@@ -80,4 +78,4 @@ function createPro({ vscode, context, license, enabled }) {
   };
 }
 
-module.exports = { createPro, FEATURES, SKU, TRIAL_USES, TRIAL_KEY, PRO_ENABLED, PRICE_LINE };
+module.exports = { createPro, FEATURES, SKU, TRIAL_USES, TRIAL_KEY, PRO_ENABLED, PRO_TOOLS };

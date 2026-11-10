@@ -138,7 +138,7 @@ Other DOCX extensions for VS Code are viewers. Their users have asked for exactl
 | "DOCX Viewer: Export Redline as DOCX with Tracked Changes (Pro)" | Saves the open redline as a Word file with tracked changes |
 | "DOCX Viewer: Export Redline as HTML (Pro)" | Saves the open redline as one HTML file |
 | "DOCX Viewer: Compare Two Folders of Documents (Pro)..." | Redlines every pair of same-named documents in two folders |
-| "Zovo Pro: Get Zovo Pro (USD 19 once, all 21 Zovo extensions)" | Opens the Zovo Pro tier on GitHub Sponsors |
+| "Zovo Pro: Get Zovo Pro (USD 19 once, all 22 Zovo extensions)" | Opens the Zovo Pro tier on GitHub Sponsors |
 | "Zovo Pro: Pay for Zovo Pro with PayPal (USD 19, team of 5 USD 59)" | Shows the PayPal steps and opens PayPal with the amount filled in |
 | "Zovo Pro: I already paid: unlock with GitHub Sponsors" | Unlocks Zovo Pro if your GitHub account bought the Zovo Pro tier |
 | "Zovo Pro: Enter Zovo Pro license key" | Adds a Zovo Pro license key (checked on your computer) |

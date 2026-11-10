@@ -351,9 +351,10 @@ test('Pro: each Pro feature works 3 times free, then explains itself once per cl
   assert.equal(pro.label('exportRedline'), 'Pro');
   assert.equal(await pro.check('exportRedline'), false);
   assert.equal(shown.length, 1);
-  assert.match(shown[0][1], /3 free tries/);
-  assert.match(shown[0][1], /USD 19 once/);
-  assert.match(shown[0][1], /on-screen redline/);
+  // Module v2 (EXEC14): the product passes the detail and the tries used; the module writes the price and the rest.
+  assert.equal(shown[0][0], 'Redline export');
+  assert.equal(shown[0][1].triesUsed, 3);
+  assert.match(shown[0][1].detail, /tracked changes/);
   assert.equal(await pro.check('compareFolders'), true); // its own counter
   const licensed = createPro({ vscode, context: stubContext(), license: Object.assign({}, lic, { isPro: () => true }) });
   for (let i = 0; i < 5; i++) { assert.equal(await licensed.check('exportRedline'), true); await licensed.commit('exportRedline'); }
@@ -566,9 +567,14 @@ test('Pro (CONV2): the real license facade explains with the buy buttons first, 
   await pro.ready;
   for (let i = 0; i < TRIAL_USES; i++) await pro.commit('exportRedline');
   assert.equal(await pro.check('exportRedline'), false);
-  assert.deepEqual(modal[0].b, ['Get Zovo Pro', 'Unlock with GitHub Sponsors', 'Pay with PayPal', 'I have a license key']);
-  assert.match(modal[0].detail, /How to buy: "Get Zovo Pro" opens the "\$19 one time" tier on GitHub Sponsors/);
-  assert.match(modal[0].detail, /USD 59 for a team of 5/);
+  // Module v2 (EXEC14, CONV3 fix 4): 4 buttons, Get Zovo Pro first; the panel names the other DOCX Pro tool and the
+  // count of Zovo extensions; the refund line stays hidden while funding.json refund_days is empty.
+  assert.deepEqual(modal[0].b, ['Get Zovo Pro, USD 19', 'Pay with PayPal', 'I already paid']);
+  assert.match(modal[0].msg, /^Redline export is part of Zovo Pro\./);
+  assert.match(modal[0].detail, /You used the 3 free tries on this computer\./);
+  assert.match(modal[0].detail, /USD 19 once, for life\. It turns on Folder compare here, and the Pro tools of all 22 Zovo extensions/);
+  assert.match(modal[0].detail, /Everything that is free today stays free\./);
+  assert.doesNotMatch(modal[0].detail, /refund/i);
   assert.equal(modal[1].msg, 'Pay for Zovo Pro with PayPal');
   assert.deepEqual(opened, ['https://github.com/theluckystrike/zovo-plugin-factory/issues/new?template=zovo-pro-key.yml&title=Zovo%20Pro%20key%3A%20PayPal%20payment%20for%20DOCX%20Viewer&product=DOCX%20Viewer']);
   const pk = require('../package.json');
