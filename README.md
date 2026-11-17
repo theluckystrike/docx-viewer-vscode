@@ -14,6 +14,13 @@ Free, offline, no sign-in. Optional Zovo Pro (USD 15 once, all Zovo viewers) exp
 - Open big real-world files. A 47 MB government report with 41 photos opens in about 1.5 seconds, and Page view lays it out in under half a second. The preview reloads when the file changes on disk. The whole extension is a 0.8 MB download and needs no Office or LibreOffice.
 - Works in the browser too. In vscode.dev and github.dev, click a .docx in a GitHub repository and read it without cloning.
 
+## Teams and companies
+
+- Zovo Pro Team is the company licence: USD 59 once for a team of 5, one key, the Pro tools in every Zovo extension that has them. [See Zovo Pro Team](https://license.zovo.one/buy/zovo-pro-team?client_reference_id=readme-docx)
+- Commercial use is allowed.
+- The key is checked on your computer, so it works offline. No account and no subscription.
+- Invoice with your company name and tax ID on request: support@zovo.one.
+
 ## New in 0.4.0, compare Word documents as a redline
 
 ![Two versions of a services agreement compared in VS Code: the change list on the left, word insertions underlined in green, deletions struck through in red, a moved clause in purple, changed table cells outlined and a formatting change dotted](https://raw.githubusercontent.com/theluckystrike/docx-viewer-vscode/main/images/redline-dark.png)
